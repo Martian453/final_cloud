@@ -20,6 +20,12 @@ interface WaterQualityData {
   level: number
   ph: number
   turbidity: number
+  chartData: {
+    labels: string[]
+    level: number[]
+    ph: number[]
+    turbidity: number[]
+  }
 }
 
 import { Maximize2 } from "lucide-react"

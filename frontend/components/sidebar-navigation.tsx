@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/components/auth-provider";
 import { LayoutDashboard, Sun, Moon, Monitor, X, LogOut, Cpu, Download, MapPin, PlusCircle } from "lucide-react"
 import { useTheme } from "next-themes"
-import { RegisterDeviceModal } from "./register-device-modal"
+import { RegisterDeviceModal } from "./dashboard/register-device-modal"
 
 interface Location {
   id: number;
@@ -302,7 +302,6 @@ export function SidebarNavigation({ isOpen, onToggle, locations = [], currentLoc
         isOpen={showRegister}
         onClose={() => setShowRegister(false)}
         onSuccess={handleRegisterSuccess}
-        token={token}
       />
     </>
   )

@@ -42,10 +42,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const getApiUrl = (path: string) => {
-        if (typeof window === 'undefined') return `http://localhost:8000${path}`;
-        const protocol = window.location.protocol;
-        const host = window.location.hostname;
-        return `${protocol}//${host}:8000${path}`;
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        return `${baseUrl}${path}`;
     }
 
     const fetchUser = async (authToken: string) => {
@@ -111,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('token');
         setToken(null);
         setUser(null);
-        router.push('/login');
+        router.push('/');
     };
 
     return (

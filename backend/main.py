@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
+import os
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from datetime import datetime
@@ -24,7 +25,14 @@ origins = [
     "http://localhost:3000",
     "http://192.168.1.7",
     "http://192.168.1.7:3000",
+    # Allow production frontend
+    os.getenv("FRONTEND_URL", ""), 
+    # Optional: Allow any Vercel preview (insecure for high security apps, fine for this)
+    # "*", 
 ]
+
+# Clean empty strings
+origins = [origin for origin in origins if origin]
 
 app.add_middleware(
     CORSMiddleware,
@@ -405,6 +413,36 @@ async def delete_device(device_id: str, current_user: User = Depends(auth.get_cu
     
     return {"message": "Device deleted successfully"}
 
+@app.get("/api/export/csv")
+async def export_csv(current_user: User = Depends(auth.get_current_user), session: Session = Depends(get_session)):
+    import csv
+    import io
+    from fastapi.responses import StreamingResponse
+
+    # Get user's devices
+    devices = session.exec(select(Device).where(Device.owner_id == current_user.id)).all()
+    device_ids = [d.device_id for d in devices]
+    
+    if not device_ids:
+        # Return empty CSV
+        return StreamingResponse(io.StringIO("timestamp,device_id,type,value\n"), media_type="text/csv")
+
+    # Get last 1000 measurements for these devices
+    measurements = session.exec(select(Measurement).where(Measurement.device_id.in_(device_ids)).order_by(Measurement.timestamp.desc()).limit(1000)).all()
+    
+    # Generate CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Timestamp", "Device ID", "Location", "Type", "Value"])
+    
+    location_map = {d.device_id: d.location_id for d in devices} # Naive map
+    
+    for m in measurements:
+        writer.writerow([m.timestamp, m.device_id, location_map.get(m.device_id, "Unknown"), m.type, m.value])
+        
+    output.seek(0)
+    return StreamingResponse(output, media_type="text/csv", headers={"Content-Disposition": "attachment; filename=env_export.csv"})
+
 @app.get("/api/public/locations")
 def get_public_locations(session: Session = Depends(get_session)):
     """
@@ -413,35 +451,91 @@ def get_public_locations(session: Session = Depends(get_session)):
     """
     locations = session.exec(select(Location)).all()
     
-    result = []
+    # Re-writing the loop effectively to get ALL latest values per location
+    final_result = []
     current_time = datetime.utcnow()
     
     for loc in locations:
-        # Check devices in this location
         devices = session.exec(select(Device).where(Device.location_id == loc.id)).all()
         is_online = False
         last_seen = None
         
+        # Dictionary to hold latest values for this location
+        loc_values = {
+            "pm25": 0, "pm10": 0, "co": 0, "no2": 0, "o3": 0, "so2": 0,
+            "level": 0, "ph": 0, "turbidity": 0
+        }
+        
         for dev in devices:
-            # Check last measurement
-            last_meas = session.exec(select(Measurement).where(Measurement.device_id == dev.device_id).order_by(Measurement.timestamp.desc())).first()
-            if last_meas:
-                # Naive online check (if data is recent < 30s)
-                time_diff = (current_time - last_meas.timestamp).total_seconds()
-                if time_diff < 45: 
+            # Get latest measurements for this device
+            measures = session.exec(select(Measurement).where(Measurement.device_id == dev.device_id).order_by(Measurement.timestamp.desc()).limit(20)).all()
+            
+            if measures:
+                # Online Check (using absolute latest)
+                latest = measures[0]
+                if (current_time - latest.timestamp).total_seconds() < 45:
                     is_online = True
                 
-                if not last_seen or last_meas.timestamp > last_seen:
-                    last_seen = last_meas.timestamp
+                if not last_seen or latest.timestamp > last_seen:
+                    last_seen = latest.timestamp
+                    
+                # Update values map (prefer newer data)
+                seen_types = set()
+                for m in measures:
+                    if m.type not in seen_types:
+                        if m.type in loc_values:
+                            loc_values[m.type] = m.value
+                        seen_types.add(m.type)
 
-        result.append({
+        # Get last 50 measurements for charts (simple history)
+        chart_history = {
+            "labels": [],
+            "pm25": [], "pm10": [], "co": [], "no2": [], "o3": [], "so2": [],
+            "level": [], "ph": [], "turbidity": []
+        }
+        
+        # Fetch last 50 mixed measurements for this location's devices
+        if devices:
+            device_ids = [d.device_id for d in devices]
+            history_measures = session.exec(select(Measurement).where(Measurement.device_id.in_(device_ids)).order_by(Measurement.timestamp.asc()).limit(100)).all()
+            
+            # Time Bucketing for Charts
+            time_buckets = {}
+            
+            for hm in history_measures:
+                # Normalize Type
+                key = hm.type.lower().replace(".", "").replace(" ", "")
+                if key in chart_history:
+                    ts_str = hm.timestamp.strftime("%H:%M")
+                    if ts_str not in time_buckets:
+                        time_buckets[ts_str] = {}
+                    time_buckets[ts_str][key] = hm.value
+            
+            # Flatten to arrays (Sorted by time)
+            sorted_times = sorted(time_buckets.keys())
+            chart_history["labels"] = sorted_times
+            
+            # Explicit keys to ensure all arrays are populated equally
+            metrics = ["pm25", "pm10", "co", "no2", "o3", "so2", "level", "ph", "turbidity"]
+            
+            for t in sorted_times:
+                data_point = time_buckets[t]
+                for m in metrics:
+                    # Append actual value or 0 if missing for this specific timestamp
+                    chart_history[m].append(data_point.get(m, 0.0))
+
+        final_result.append({
             "location_id": loc.name,
             "name": loc.display_name or loc.name,
             "area": loc.area,
             "latitude": loc.latitude,
             "longitude": loc.longitude,
             "online": is_online,
-            "last_seen": last_seen.isoformat() if last_seen else None
+            "last_seen": last_seen.isoformat() if last_seen else None,
+            "data": {
+                **loc_values,
+                "chartData": chart_history
+            }
         })
         
-    return result
+    return final_result

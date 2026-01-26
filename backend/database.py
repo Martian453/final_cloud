@@ -1,9 +1,15 @@
 from sqlmodel import SQLModel, create_engine, Session
 
-SQLITE_FILE_NAME = "env_cloud_v2.db"
-sqlite_url = f"sqlite:///{SQLITE_FILE_NAME}"
+import os
 
-connect_args = {"check_same_thread": False}
+# Default to SQLite for local, Use env var for Prod
+sqlite_url = os.getenv("DATABASE_URL", "sqlite:///env_cloud_v2.db")
+
+# Railway/Postgres requires "postgresql://" not "postgres://"
+if sqlite_url.startswith("postgres://"):
+    sqlite_url = sqlite_url.replace("postgres://", "postgresql://", 1)
+
+connect_args = {"check_same_thread": False} if "sqlite" in sqlite_url else {}
 engine = create_engine(sqlite_url, echo=True, connect_args=connect_args)
 
 def create_db_and_tables():

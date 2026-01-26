@@ -87,11 +87,10 @@ export function PrivateDashboard() {
     const [locationsStatus, setLocationsStatus] = useState<Record<string, { location_id: string; online: boolean; last_seen: string | null; latitude: number | null; longitude: number | null; name: string }>>({});
 
     // Helper for API URL
+    // Helper for API URL
     const getApiUrl = (path: string) => {
-        if (typeof window === 'undefined') return `http://localhost:8000${path}`;
-        const protocol = window.location.protocol;
-        const host = window.location.hostname;
-        return `${protocol}//${host}:8000${path}`;
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        return `${baseUrl}${path}`;
     }
 
     useEffect(() => {
@@ -259,7 +258,9 @@ export function PrivateDashboard() {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (res.ok) {
-                // Refresh list
+                // Optimistic UI Update: Remove immediately
+                setMyDevices(prev => prev.filter(d => d.device_id !== deviceId));
+                // Optional: Background re-fetch to be safe
                 fetchDevices();
             } else {
                 alert("Failed to delete device");

@@ -5,3 +5,7 @@ requests
 python-multipart
 opencv-python-headless
 pytesseract
+psycopg2-binary
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt
