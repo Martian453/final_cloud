@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
 import os
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import Session, select
+from sqlmodel import Session, select, desc
 from datetime import datetime
 from database import create_db_and_tables, get_session
 from models import Location, Device, Measurement, User
@@ -404,14 +404,15 @@ async def delete_device(device_id: str, current_user: User = Depends(auth.get_cu
     if not device:
         raise HTTPException(status_code=404, detail="Device not found or access denied")
     
-    # 2. Delete linked measurements first (Manual Cascade)
-    session.exec(delete(Measurement).where(Measurement.device_id == device_id))
+    # 2. Production Rule: Soft Delete / Unlink
+    # Do NOT delete measurements (historical data preservation)
+    # Do NOT delete the device row (it just becomes unclaimed)
     
-    # 3. Delete Device
-    session.delete(device)
+    device.owner_id = None
+    session.add(device)
     session.commit()
     
-    return {"message": "Device deleted successfully"}
+    return {"message": "Device unlinked successfully"}
 
 @app.get("/api/export/csv")
 async def export_csv(current_user: User = Depends(auth.get_current_user), session: Session = Depends(get_session)):
@@ -497,7 +498,9 @@ def get_public_locations(session: Session = Depends(get_session)):
         # Fetch last 50 mixed measurements for this location's devices
         if devices:
             device_ids = [d.device_id for d in devices]
-            history_measures = session.exec(select(Measurement).where(Measurement.device_id.in_(device_ids)).order_by(Measurement.timestamp.asc()).limit(100)).all()
+            # Fetch LAST 100 measurements (descending) then reverse to be chronological
+            history_measures = session.exec(select(Measurement).where(Measurement.device_id.in_(device_ids)).order_by(Measurement.timestamp.desc()).limit(100)).all()
+            history_measures.reverse() 
             
             # Time Bucketing for Charts
             time_buckets = {}

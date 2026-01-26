@@ -27,7 +27,27 @@ export function PublicDashboard() {
                 const res = await fetch(`${apiUrl}/api/public/locations`)
                 const data = await res.json()
                 if (Array.isArray(data)) {
-                    setLocations(data)
+                    // Sort by distance if user location is known
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition((pos) => {
+                            const { latitude: userLat, longitude: userLng } = pos.coords;
+
+                            // Simple distance sort (Haversine approx not needed for small list, just Euclidean is fine for sort)
+                            // But let's do a simple sort
+                            const sorted = [...data].sort((a, b) => {
+                                if (!a.latitude || !b.latitude) return 0;
+                                const distA = Math.hypot(a.latitude - userLat, a.longitude - userLng);
+                                const distB = Math.hypot(b.latitude - userLat, b.longitude - userLng);
+                                return distA - distB;
+                            });
+                            setLocations(sorted);
+                        }, () => {
+                            // Permission denied or error, keep original order
+                            setLocations(data);
+                        });
+                    } else {
+                        setLocations(data)
+                    }
 
                 } else {
                     console.error("Public API returned non-array:", data);
