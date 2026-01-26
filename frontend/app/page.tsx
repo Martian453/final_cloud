@@ -277,7 +277,9 @@ export default function Dashboard() {
                         pm25: [...currentChart.pm25, wsData.data.pm25].slice(-100),
                         pm10: [...currentChart.pm10, wsData.data.pm10].slice(-100),
                         co: [...currentChart.co, wsData.data.co].slice(-100),
-                        no2: [...currentChart.no2, wsData.data.no2].slice(-100)
+                        no2: [...currentChart.no2, wsData.data.no2].slice(-100),
+                        o3: [...(currentChart.o3 || []), wsData.data.o3].slice(-100),
+                        so2: [...(currentChart.so2 || []), wsData.data.so2].slice(-100)
                     }
                 };
             });

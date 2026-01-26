@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from datetime import datetime
 from database import create_db_and_tables, get_session
-from models import Location, Device, Measurement
+from models import Location, Device, Measurement, User
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
 from connection_manager import ConnectionManager
@@ -66,18 +66,37 @@ def health_check():
     return {"status": "ok"}
 
 @app.post("/api/devices/register")
-async def register_device(payload: RegisterDevicePayload, session: Session = Depends(get_session)):
+async def register_device(
+    payload: RegisterDevicePayload, 
+    current_user: User = Depends(auth.get_current_user), # Secure Endpoint
+    session: Session = Depends(get_session)
+):
     try:
+        # 1. Validate Device ID (Check if already owned by ANOTHER user)
+        existing_device = session.exec(select(Device).where(Device.device_id == payload.device_id)).first()
+        if existing_device and existing_device.owner_id and existing_device.owner_id != current_user.id:
+            raise HTTPException(status_code=400, detail="Device is already registered to another user.")
+
         loc = None
         
+        # 2. Find or Create Location
         # Scenario A: User provided manual location_id (Backwards compatibility / Advanced)
         if payload.location_id:
             loc = session.exec(select(Location).where(Location.name == payload.location_id)).first()
             if not loc:
-                loc = Location(name=payload.location_id, display_name=payload.location_id)
+                loc = Location(
+                    name=payload.location_id, 
+                    display_name=payload.location_id, 
+                    owner_id=current_user.id # Set Owner
+                )
                 session.add(loc)
                 session.commit()
                 session.refresh(loc)
+            elif not loc.owner_id:
+                # Claim orphaned location
+                loc.owner_id = current_user.id
+                session.add(loc)
+                session.commit()
         
         # Scenario B: User provided Smart Input (Area/Type) -> Auto-Generate ID
         elif payload.location_input:
@@ -85,10 +104,8 @@ async def register_device(payload: RegisterDevicePayload, session: Session = Dep
             site_type = payload.location_input.site_type.upper().replace(" ", "")
             
             # Find next index
-            # Simple heuristic: Count existing locations with same prefix
-            # Note: In high-concurrency production, use DB sequence or atomic lock.
-            existing = session.exec(select(Location).where(Location.area == payload.location_input.area, Location.site_type == payload.location_input.site_type)).all()
-            index = len(existing) + 1
+            existing_locs = session.exec(select(Location).where(Location.area == payload.location_input.area, Location.site_type == payload.location_input.site_type)).all()
+            index = len(existing_locs) + 1
             
             generated_id = f"{area}_{site_type}_{index:02d}"
             
@@ -97,50 +114,52 @@ async def register_device(payload: RegisterDevicePayload, session: Session = Dep
             if payload.location_input.label:
                 friendly += f" ({payload.location_input.label})"
             
-            # Check if exists (idempotency for re-runs of script?)
-            # Ideally we reuse if exact same metadata? 
-            # For strictness: We created a new ID.
-            # But what if I run script twice for same device? I should find the location *this* device is assigned to? 
-            # Or just create/get the location defined. 
-            # Let's check if generated_id exists
-            loc = session.exec(select(Location).where(Location.name == generated_id)).first()
-            if not loc:
-                loc = Location(
-                    name=generated_id,
-                    display_name=friendly,
-                    area=payload.location_input.area,
-                    site_type=payload.location_input.site_type,
-                    label=payload.location_input.label
-                )
-                session.add(loc)
-                session.commit()
-                session.refresh(loc)
-        
-        else:
-            raise HTTPException(status_code=400, detail="Must provide location_id OR location_input")
+            # Create new location linked to user
+            loc = Location(
+                name=generated_id,
+                display_name=friendly,
+                area=payload.location_input.area,
+                site_type=payload.location_input.site_type,
+                label=payload.location_input.label,
+                owner_id=current_user.id # Set Owner
+            )
+            session.add(loc)
+            session.commit()
+            session.refresh(loc)
 
-        # 2. Upsert Device
-        dev = session.get(Device, payload.device_id)
-        if not dev:
-            # New device
-            dev = Device(device_id=payload.device_id, location_id=loc.id, type=payload.device_type)
-            session.add(dev)
+        if not loc:
+            raise HTTPException(status_code=400, detail="Unable to determine location.")
+
+        # 3. Register/Claim Device
+        if existing_device:
+            # Re-assign or update existing
+            existing_device.location_id = loc.id
+            existing_device.owner_id = current_user.id
+            existing_device.type = payload.device_type
+            session.add(existing_device)
         else:
-            # Move device to new location
-            dev.location_id = loc.id
-            dev.type = payload.device_type
-            session.add(dev)
+            # Create new
+            new_device = Device(
+                device_id=payload.device_id,
+                type=payload.device_type,
+                location_id=loc.id,
+                owner_id=current_user.id
+            )
+            session.add(new_device)
         
         session.commit()
+        
         return {
             "status": "success", 
-            "device_id": payload.device_id,
-            "assigned_location_id": loc.name,
-            "friendly_name": loc.display_name
+            "message": f"Device {payload.device_id} registered successfully to {loc.display_name}",
+            "location_name": loc.display_name,
+            "device_id": payload.device_id
         }
+
+    except HTTPException as he:
+        raise he
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        print(f"Registration Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/ingest")
