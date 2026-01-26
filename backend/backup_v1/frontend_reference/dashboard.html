@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air & Groundwater Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ range(1, 10000) | random }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <header>
+        <div class="header-title">
+            <h1>Air & <span>Groundwater</span> Intelligence</h1>
+        </div>
+        <div class="header-actions">
+            <button id="downloadBtn">Download Excel | CSV</button>
+            <div id="systemStatus" class="system-status offline">SYSTEM OFFLINE</div>
+        </div>
+    </header>
+
+    <main class="dashboard">
+        <!-- AIR QUALITY CARD -->
+        <section class="card air">
+            <h2>Air Quality</h2>
+
+            <div class="aqi-box">
+                <div class="aqi-value" id="aqi-value">--</div>
+                <div class="aqi-status" id="aqi-status">Waiting...</div>
+            </div>
+
+            <div class="pollutants">
+                <div class="p-item">
+                    <div class="p-head">PM2.5</div>
+                    <div class="p-val" id="val-pm25">--</div>
+                    <div class="p-unit">µg/m³</div>
+                </div>
+                <div class="p-item">
+                    <div class="p-head">PM10</div>
+                    <div class="p-val" id="val-pm10">--</div>
+                    <div class="p-unit">µg/m³</div>
+                </div>
+                <div class="p-item">
+                    <div class="p-head">CO</div>
+                    <div class="p-val" id="val-co">--</div>
+                    <div class="p-unit">ppb</div>
+                </div>
+                <div class="p-item">
+                    <div class="p-head">NO₂</div>
+                    <div class="p-val" id="val-no2">--</div>
+                    <div class="p-unit">ppb</div>
+                </div>
+                <div class="p-item">
+                    <div class="p-head">O₃</div>
+                    <div class="p-val" id="val-o3">--</div>
+                    <div class="p-unit">ppb</div>
+                </div>
+                <div class="p-item">
+                    <div class="p-head">SO₂</div>
+                    <div class="p-val" id="val-so2">--</div>
+                    <div class="p-unit">ppb</div>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h3>AQI Pollutant Levels</h3>
+                <div class="chart-container-left">
+                    <canvas id="aqiChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- ENVIRONMENTAL CORE CARD -->
+        <section class="card core">
+            <h2>Environmental Core</h2>
+
+            <div class="reactor-wrapper">
+                <div id="reactor" class="reactor">
+                    <div class="ring ring-outer"></div>
+                    <div class="ring ring-inner"></div>
+
+                    <!-- Saturn-style Orbital Rings -->
+                    <div class="saturn-rings">
+                        <div class="saturn-ring saturn-ring-1"></div>
+                        <div class="saturn-ring saturn-ring-2"></div>
+                        <div class="saturn-ring saturn-ring-3"></div>
+                    </div>
+
+                    <div class="sphere-3d" id="sphere"></div>
+                    <canvas id="particleCanvas" class="particle-canvas"></canvas>
+                </div>
+            </div>
+
+
+
+            <div class="bottom-chart-section">
+                <h3>Last Recorded AQI Mix</h3>
+                <div class="last-update">Last update: <span id="lastUpdateTime">--:--</span></div>
+            </div>
+        </section>
+
+        <!-- WATER QUALITY CARD -->
+        <section class="card water">
+            <h2>Water Quality</h2>
+
+            <div class="water-metrics">
+                <div class="w-metric">
+                    <div class="w-metric-label">Ground<br>Water Level</div>
+                    <div class="w-metric-value blue" id="val-level">--</div>
+                    <div class="w-metric-unit">ft</div>
+                </div>
+                <div class="w-metric">
+                    <div class="w-metric-label">PH Level</div>
+                    <div class="w-metric-value green" id="val-ph">--</div>
+                    <div class="w-metric-range">Within 6.5—8.5</div>
+                </div>
+                <div class="w-metric">
+                    <div class="w-metric-label">Turbidity</div>
+                    <div class="w-metric-value yellow" id="val-turb">--</div>
+                    <div class="w-metric-unit">ppb</div>
+                </div>
+            </div>
+
+            <div class="water-chart-section">
+                <h3>Water Quality</h3>
+                <div class="chart-container-right">
+                    <canvas id="waterChart"></canvas>
+                </div>
+            </div>
+
+            <div class="water-level-display">
+                <div class="label">Ground Water Level (ft)</div>
+                <div class="value" id="val-level-large">--<span class="unit">ft</span></div>
+            </div>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='script.js') }}?v={{ range(1, 10000) | random }}"></script>
+</body>
+
+</html>
