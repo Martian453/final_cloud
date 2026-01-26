@@ -388,3 +388,60 @@ async def get_my_devices(current_user: User = Depends(auth.get_current_user), se
             "status": "ONLINE" if is_online else "OFFLINE"
         })
     return data
+
+@app.delete("/api/devices/{device_id}")
+async def delete_device(device_id: str, current_user: User = Depends(auth.get_current_user), session: Session = Depends(get_session)):
+    # 1. Find the device and verify ownership
+    device = session.exec(select(Device).where(Device.device_id == device_id, Device.owner_id == current_user.id)).first()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found or access denied")
+    
+    # 2. Delete linked measurements first (Manual Cascade)
+    session.exec(delete(Measurement).where(Measurement.device_id == device_id))
+    
+    # 3. Delete Device
+    session.delete(device)
+    session.commit()
+    
+    return {"message": "Device deleted successfully"}
+
+@app.get("/api/public/locations")
+def get_public_locations(session: Session = Depends(get_session)):
+    """
+    Public Endpoint: Returns all visible locations with their live status.
+    Used for the Public Dashboard (No Login).
+    """
+    locations = session.exec(select(Location)).all()
+    
+    result = []
+    current_time = datetime.utcnow()
+    
+    for loc in locations:
+        # Check devices in this location
+        devices = session.exec(select(Device).where(Device.location_id == loc.id)).all()
+        is_online = False
+        last_seen = None
+        
+        for dev in devices:
+            # Check last measurement
+            last_meas = session.exec(select(Measurement).where(Measurement.device_id == dev.device_id).order_by(Measurement.timestamp.desc())).first()
+            if last_meas:
+                # Naive online check (if data is recent < 30s)
+                time_diff = (current_time - last_meas.timestamp).total_seconds()
+                if time_diff < 45: 
+                    is_online = True
+                
+                if not last_seen or last_meas.timestamp > last_seen:
+                    last_seen = last_meas.timestamp
+
+        result.append({
+            "location_id": loc.name,
+            "name": loc.display_name or loc.name,
+            "area": loc.area,
+            "latitude": loc.latitude,
+            "longitude": loc.longitude,
+            "online": is_online,
+            "last_seen": last_seen.isoformat() if last_seen else None
+        })
+        
+    return result
