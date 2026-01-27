@@ -32,9 +32,9 @@ export function RegisterDeviceModal({ isOpen, onClose, onSuccess }: RegisterDevi
 
         try {
             // Helper to get API URL
-            const host = window.location.hostname
-            const protocol = window.location.protocol
-            const apiUrl = `${protocol}//${host}:8000/api/devices/register`
+            // Helper to get API URL
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+            const apiUrl = `${baseUrl}/api/devices/register`
 
             const res = await fetch(apiUrl, {
                 method: "POST",
