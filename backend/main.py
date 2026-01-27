@@ -114,11 +114,20 @@ async def register_device(
             
             # 1. OPTIMIZATION: Check if User already has a location with this name
             # If yes, group this new device into that existing location!
-            existing_user_loc = session.exec(select(Location).where(
-                Location.owner_id == current_user.id,
-                Location.area == payload.location_input.area,
-                Location.site_type == payload.location_input.site_type
-            )).first()
+            
+            # Fetch all user locations first (usually small list) to do robust case-insensitive check in Python
+            # This avoids dealing with ILIKE complexities across different DBs
+            all_user_locs = session.exec(select(Location).where(Location.owner_id == current_user.id)).all()
+            
+            existing_user_loc = None
+            for u_loc in all_user_locs:
+                 # Check against normalized inputs
+                 u_area = (u_loc.area or "").upper().replace(" ", "")
+                 u_type = (u_loc.site_type or "").upper().replace(" ", "")
+                 
+                 if u_area == area and u_type == site_type:
+                     existing_user_loc = u_loc
+                     break
 
             if existing_user_loc:
                 # REUSE EXISTING LOCATION
@@ -126,8 +135,17 @@ async def register_device(
             else:
                 # CREATE NEW LOCATION
                 # Find next index globally or for user? Using global sequence style for unique IDs
-                existing_locs = session.exec(select(Location).where(Location.area == payload.location_input.area, Location.site_type == payload.location_input.site_type)).all()
-                index = len(existing_locs) + 1
+                # We need to find matching global locations to determine index
+                # Again, doing simple loose search
+                existing_locs = session.exec(select(Location)).all()
+                count = 0
+                for el in existing_locs:
+                    e_area = (el.area or "").upper().replace(" ", "")
+                    e_type = (el.site_type or "").upper().replace(" ", "")
+                    if e_area == area and e_type == site_type:
+                        count += 1
+                
+                index = count + 1
                 
                 generated_id = f"{area}_{site_type}_{index:02d}"
                 
@@ -138,6 +156,12 @@ async def register_device(
                 
                 loc = Location(
                     name=generated_id,
+                    display_name=friendly,
+                    area=payload.location_input.area,
+                    site_type=payload.location_input.site_type,
+                    label=payload.location_input.label,
+                    owner_id=current_user.id 
+                )
                     display_name=friendly,
                     area=payload.location_input.area,
                     site_type=payload.location_input.site_type,
