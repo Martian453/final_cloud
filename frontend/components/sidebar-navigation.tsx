@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/components/auth-provider";
-import { LayoutDashboard, Sun, Moon, Monitor, X, LogOut, Cpu, Download, MapPin, PlusCircle } from "lucide-react"
-import { useTheme } from "next-themes"
+import { LayoutDashboard, LogOut, Cpu, Download, MapPin, PlusCircle, X } from "lucide-react"
 import { RegisterDeviceModal } from "./dashboard/register-device-modal"
 
 interface Location {
@@ -27,7 +26,7 @@ interface SidebarNavigationProps {
 
 export function SidebarNavigation({ isOpen, onToggle, locations = [], currentLocationId, onLocationSelect, activeView, onNavigate, locationsStatus = {} }: SidebarNavigationProps) {
   const [mounted, setMounted] = useState(false);
-  const { theme, setTheme } = useTheme()
+
   const { user, logout, token } = useAuth();
   const [showRegister, setShowRegister] = useState(false);
 
@@ -100,11 +99,7 @@ export function SidebarNavigation({ isOpen, onToggle, locations = [], currentLoc
     }
   }
 
-  const themes = [
-    { id: "light" as const, label: "Light", icon: Sun },
-    { id: "dark" as const, label: "Dark", icon: Moon },
-    { id: "system" as const, label: "System", icon: Monitor },
-  ]
+
 
   return (
     <>
@@ -268,16 +263,7 @@ export function SidebarNavigation({ isOpen, onToggle, locations = [], currentLoc
             )}
           </div>
 
-          {/* Theme Selector */}
-          <div className="mt-8">
-            <div className="flex gap-1 rounded-lg bg-white/5 p-1">
-              {themes.map((t) => (
-                <button key={t.id} onClick={() => setTheme(t.id)} className={`flex-1 rounded py-2 text-xs font-medium transition-all ${theme === t.id ? "bg-white/10 text-white" : "text-slate-500 hover:text-white"}`}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
+
         </nav>
 
         {/* User Footer */}
