@@ -107,33 +107,46 @@ async def register_device(
                 session.commit()
         
         # Scenario B: User provided Smart Input (Area/Type) -> Auto-Generate ID
+        # Scenario B: User provided Smart Input (Area/Type) -> Smart Grouping
         elif payload.location_input:
             area = payload.location_input.area.upper().replace(" ", "")
             site_type = payload.location_input.site_type.upper().replace(" ", "")
             
-            # Find next index
-            existing_locs = session.exec(select(Location).where(Location.area == payload.location_input.area, Location.site_type == payload.location_input.site_type)).all()
-            index = len(existing_locs) + 1
-            
-            generated_id = f"{area}_{site_type}_{index:02d}"
-            
-            # Create readable name
-            friendly = f"{payload.location_input.area} {payload.location_input.site_type} #{index}"
-            if payload.location_input.label:
-                friendly += f" ({payload.location_input.label})"
-            
-            # Create new location linked to user
-            loc = Location(
-                name=generated_id,
-                display_name=friendly,
-                area=payload.location_input.area,
-                site_type=payload.location_input.site_type,
-                label=payload.location_input.label,
-                owner_id=current_user.id # Set Owner
-            )
-            session.add(loc)
-            session.commit()
-            session.refresh(loc)
+            # 1. OPTIMIZATION: Check if User already has a location with this name
+            # If yes, group this new device into that existing location!
+            existing_user_loc = session.exec(select(Location).where(
+                Location.owner_id == current_user.id,
+                Location.area == payload.location_input.area,
+                Location.site_type == payload.location_input.site_type
+            )).first()
+
+            if existing_user_loc:
+                # REUSE EXISTING LOCATION
+                loc = existing_user_loc
+            else:
+                # CREATE NEW LOCATION
+                # Find next index globally or for user? Using global sequence style for unique IDs
+                existing_locs = session.exec(select(Location).where(Location.area == payload.location_input.area, Location.site_type == payload.location_input.site_type)).all()
+                index = len(existing_locs) + 1
+                
+                generated_id = f"{area}_{site_type}_{index:02d}"
+                
+                # Create readable name
+                friendly = f"{payload.location_input.area} {payload.location_input.site_type} #{index}"
+                if payload.location_input.label:
+                    friendly += f" ({payload.location_input.label})"
+                
+                loc = Location(
+                    name=generated_id,
+                    display_name=friendly,
+                    area=payload.location_input.area,
+                    site_type=payload.location_input.site_type,
+                    label=payload.location_input.label,
+                    owner_id=current_user.id 
+                )
+                session.add(loc)
+                session.commit()
+                session.refresh(loc)
 
         if not loc:
             raise HTTPException(status_code=400, detail="Unable to determine location.")
