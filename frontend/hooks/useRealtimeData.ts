@@ -37,10 +37,11 @@ export function useRealtimeData(locationId: string, token: string | null) {
         }
 
         // Connect to WebSocket with Token (Dynamic Host)
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.hostname;
-        const port = '8000'; // Assume backend is on 8000
-        const wsUrl = `${protocol}//${host}:${port}/ws/live/${encodeURIComponent(locationId)}?token=${token}`;
+        // Connect to WebSocket with Token
+        // Use the Backend URL (not frontend host)
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const wsBase = apiBase.replace(/^http/, "ws"); // http->ws, https->wss
+        const wsUrl = `${wsBase}/ws/live/${encodeURIComponent(locationId)}?token=${token}`;
         console.log(`🔌 Connecting to WS: ${wsUrl}`);
 
         const ws = new WebSocket(wsUrl);
