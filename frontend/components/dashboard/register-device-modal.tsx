@@ -44,19 +44,23 @@ export function RegisterDeviceModal({ isOpen, onClose, onSuccess }: RegisterDevi
                 },
                 body: JSON.stringify({
                     device_id: deviceId,
-                    type: deviceType,
-                    owner_email: "user_from_token", // Backend ignores this usually if using Depends(user), but payload might need it
-                    location_name: locationName,
-                    area: locationArea,
-                    latitude: parseFloat(lat),
-                    longitude: parseFloat(lng)
+                    device_type: deviceType,
+                    location_input: {
+                        area: locationArea,
+                        site_type: locationName, // Mapping 'Name' input to 'site_type' or vice versa, simplified for user
+                        label: "Manual Registration"
+                    },
+                    // backend handles user from token
                 })
             })
 
             const data = await res.json()
 
             if (!res.ok) {
-                throw new Error(data.detail || "Registration failed")
+                const errorMsg = typeof data.detail === 'string'
+                    ? data.detail
+                    : JSON.stringify(data.detail);
+                throw new Error(errorMsg || "Registration failed")
             }
 
             // Success
