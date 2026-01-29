@@ -158,46 +158,53 @@ export function PublicDashboard() {
                 <main className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full">
                     {selectedLoc ? (
                         /* DETAIL VIEW */
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                            {/* Air Quality Section */}
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                    <Wind className="h-4 w-4" />
-                                    Atmospheric Conditions
-                                </h3>
-                                <AirQualityCard
-                                    data={{
-                                        pm25: selectedLoc.data?.pm25 || 0,
-                                        pm10: selectedLoc.data?.pm10 || 0,
-                                        co: selectedLoc.data?.co || 0,
-                                        no2: selectedLoc.data?.no2 || 0,
-                                        o3: selectedLoc.data?.o3 || 0,
-                                        so2: selectedLoc.data?.so2 || 0,
-                                        chartData: selectedLoc.data?.chartData || { labels: [], pm25: [], pm10: [], co: [], no2: [], o3: [], so2: [] }
-                                    }}
-                                    activeMetric={activeMetric}
-                                    onMetricSelect={setActiveMetric}
-                                    isOffline={!selectedLoc.online}
-                                />
-                            </div>
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-full flex flex-col">
 
-                            {/* Water Quality Section */}
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                    <Droplets className="h-4 w-4" />
-                                    Groundwater Analysis
-                                </h3>
-                                <WaterQualityCard
-                                    data={{
-                                        level: selectedLoc.data?.level || 0,
-                                        ph: selectedLoc.data?.ph || 0,
-                                        turbidity: selectedLoc.data?.turbidity || 0,
-                                        chartData: selectedLoc.data?.chartData || { labels: [], level: [], ph: [], turbidity: [] }
-                                    }}
-                                    activeMetric={activeWaterMetric}
-                                    onMetricSelect={setActiveWaterMetric}
-                                    isOffline={!selectedLoc.online}
-                                />
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+                                {/* Air Quality Section */}
+                                <div className="flex flex-col gap-4 h-full">
+                                    <h3 className="text-lg font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 shrink-0">
+                                        <Wind className="h-4 w-4" />
+                                        Atmospheric Conditions
+                                    </h3>
+                                    <div className="flex-1 min-h-0 overflow-hidden">
+                                        <AirQualityCard
+                                            data={{
+                                                pm25: selectedLoc.data?.pm25 || 0,
+                                                pm10: selectedLoc.data?.pm10 || 0,
+                                                co: selectedLoc.data?.co || 0,
+                                                no2: selectedLoc.data?.no2 || 0,
+                                                o3: selectedLoc.data?.o3 || 0,
+                                                so2: selectedLoc.data?.so2 || 0,
+                                                chartData: selectedLoc.data?.chartData || { labels: [], pm25: [], pm10: [], co: [], no2: [], o3: [], so2: [] }
+                                            }}
+                                            activeMetric={activeMetric}
+                                            onMetricSelect={setActiveMetric}
+                                            isOffline={!selectedLoc.online}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Water Quality Section */}
+                                <div className="flex flex-col gap-4 h-full">
+                                    <h3 className="text-lg font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 shrink-0">
+                                        <Droplets className="h-4 w-4" />
+                                        Groundwater Analysis
+                                    </h3>
+                                    <div className="flex-1 min-h-0 overflow-hidden">
+                                        <WaterQualityCard
+                                            data={{
+                                                level: selectedLoc.data?.level || 0,
+                                                ph: selectedLoc.data?.ph || 0,
+                                                turbidity: selectedLoc.data?.turbidity || 0,
+                                                chartData: selectedLoc.data?.chartData || { labels: [], level: [], ph: [], turbidity: [] }
+                                            }}
+                                            activeMetric={activeWaterMetric}
+                                            onMetricSelect={setActiveWaterMetric}
+                                            isOffline={!selectedLoc.online}
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     ) : (
