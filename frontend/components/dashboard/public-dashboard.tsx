@@ -160,9 +160,9 @@ export function PublicDashboard() {
                         /* DETAIL VIEW */
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-full flex flex-col">
 
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
                                 {/* Air Quality Section */}
-                                <div className="flex flex-col gap-4 h-full">
+                                <div className="flex flex-col gap-2 h-full">
                                     <h3 className="text-lg font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 shrink-0">
                                         <Wind className="h-4 w-4" />
                                         Atmospheric Conditions
@@ -186,7 +186,7 @@ export function PublicDashboard() {
                                 </div>
 
                                 {/* Water Quality Section */}
-                                <div className="flex flex-col gap-4 h-full">
+                                <div className="flex flex-col gap-2 h-full">
                                     <h3 className="text-lg font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 shrink-0">
                                         <Droplets className="h-4 w-4" />
                                         Groundwater Analysis

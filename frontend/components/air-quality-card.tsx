@@ -120,7 +120,7 @@ export function AirQualityCard({ data, activeMetric, onMetricSelect, onExpand, i
   return (
     <div
       ref={cardRef}
-      className={`card-vibrant relative overflow-hidden rounded-3xl border bg-slate-900/40 p-6 backdrop-blur-xl transition-all duration-1000 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+      className={`card-vibrant relative overflow-hidden rounded-3xl border bg-slate-900/40 p-6 backdrop-blur-xl transition-all duration-1000 flex flex-col h-full ${isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
         } ${status.border} ${isOffline ? 'opacity-50 blur-[2px] pointer-events-none' : ''}`}
     >
       {isOffline && (
@@ -200,7 +200,7 @@ export function AirQualityCard({ data, activeMetric, onMetricSelect, onExpand, i
       </div>
 
       {/* Embedded History Chart */}
-      <div className="mt-6 border-t border-white/5 pt-4 h-[450px]">
+      <div className="mt-4 border-t border-white/5 pt-4 flex-1 min-h-[200px]">
         <MetricHistoryChart
           data={data.chartData.labels.map((l, i) => ({
             label: l,
