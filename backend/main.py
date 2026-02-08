@@ -107,6 +107,7 @@ async def register_device(
                 session.commit()
         
         # Scenario B: User provided Smart Input (Area/Type) -> Auto-Generate ID
+        # Scenario B: User provided Smart Input (Area/Type) -> Smart Grouping
         elif payload.location_input:
             # 1. Check for MATCHING Existing Location for this User (case-insensitive)
             input_area = payload.location_input.area.strip().lower()

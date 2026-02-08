@@ -17,37 +17,26 @@ pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tessera
 
 # DATABASE FILE
 # DATABASE CONFIG (Now API Config)
-API_URL = "http://localhost:8000/api/ingest"
-# LOCATION_ID is now managed by Cloud Registration
-DEVICE_ID_CAM = "DEV_CAM_01"
-DEVICE_ID_WATER = "DEV_WATER_01"
+# 🔧 PRODUCTION URL
+API_URL = "https://eco-intelligence.onrender.com/api/ingest" 
 
-ESP_URL = "http://10.161.184.150/data"
+# DEVICE CONFIG
+DEVICE_ID_CAM = "DEV_AQI_CAM_01" 
+# DEVICE_ID_WATER = "DEV_WATER_01" # ⚠️ Managed directly by ESP32 now
+
+# ESP_URL = "http://10.161.184.150/data" # Deprecated: ESP32 sends directly to Cloud
 
 # ---------------------------------------------------------
 # UTILITY FUNCTIONS
 # ---------------------------------------------------------
-def get_water_data():
-    try:
-        r = requests.get(ESP_URL, timeout=3)
-        if r.status_code == 200:
-            return r.json()
-    except Exception as e:
-        pass
-    return {'ph': 0, 'turbidity': 0, 'level': 0}
-
 def save_to_db(data):
-    """Sends the voted AQI data AND Water Data to the Cloud API."""
-    
-    # fetch water data
-    w = get_water_data()
+    """Sends the voted AQI data to the Cloud API."""
     
     # payload builder
     timestamp = datetime.utcnow().isoformat()
     
     # 1. Send AQI Data
     aqi_payload = {
-        # REMOVED: location_id (Cloud managed)
         "device_id": DEVICE_ID_CAM,
         "type": "aqi",
         "timestamp": timestamp,
@@ -61,27 +50,12 @@ def save_to_db(data):
         }
     }
 
-    # 2. Send Water Data
-    water_payload = {
-        # REMOVED: location_id (Cloud managed)
-        "device_id": DEVICE_ID_WATER,
-        "type": "water",
-        "timestamp": timestamp,
-        "data": {
-            "ph": w.get('ph', 0),
-            "turbidity": w.get('turbidity', 0),
-            "level": w.get('level', 0)
-        }
-    }
-    
     try:
         # Send AQI
         requests.post(API_URL, json=aqi_payload)
-        # Send Water
-        requests.post(API_URL, json=water_payload)
-        print(f"[SENT] Sent to Cloud: AQI + Water (pH:{w.get('ph')})")
+        print(f"[SENT] Cloud Upload Success: AQI Data -> {DEVICE_ID_CAM}")
     except Exception as e:
-        print(f"[ERROR] API Error: {e}")
+        print(f"[ERROR] API Connection Failed: {e}")
 
 def preprocess_frame(frame):
     """
