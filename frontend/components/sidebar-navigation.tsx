@@ -240,47 +240,7 @@ export function SidebarNavigation({ isOpen, onToggle, locations = [], currentLoc
             </li>
           </ul>
 
-          {/* MY LOCATIONS */}
-          <div className="mt-6">
-            <div className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-              My Locations
-            </div>
-            {locations.length > 0 ? (
-              <ul className="space-y-2">
-                {locations.map((loc) => {
-                  const isActive = currentLocationId === loc.name;
-                  return (
-                    <li key={loc.id}>
-                      <button
-                        onClick={() => handleLocationClick(loc.name)}
-                        className={`group relative flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-all duration-300 ${isActive
-                          ? "bg-gradient-to-r from-blue-500/20 to-cyan-500/10 text-white border border-blue-500/20"
-                          : "text-slate-400 hover:bg-white/5 hover:text-white border border-transparent"
-                          }`}
-                      >
-                        <div className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-300 ${isActive ? "bg-blue-500/20 text-blue-400" : "bg-white/5 text-slate-500 group-hover:text-white"}`}>
-                          <MapPin className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">{loc.display_name || loc.name}</div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <div className={`h-1.5 w-1.5 rounded-full ${locationsStatus[loc.name]?.online ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">
-                              {locationsStatus[loc.name]?.online ? 'Active' : 'Offline'}
-                            </span>
-                          </div>
-                        </div>
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            ) : (
-              <div className="px-4 py-2 text-sm text-slate-500">
-                No locations found.
-              </div>
-            )}
-          </div>
+
 
 
         </nav>
