@@ -3,29 +3,17 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider";
-import { LayoutDashboard, X, LogOut, Cpu, Download, MapPin, PlusCircle, Globe } from "lucide-react"
+import { LayoutDashboard, X, LogOut, Cpu, Download, PlusCircle, Globe } from "lucide-react"
 import { RegisterDeviceModal } from "./dashboard/register-device-modal"
-
-interface Location {
-  id: number;
-  name: string;
-  display_name?: string;
-  latitude?: number;
-  longitude?: number;
-}
 
 interface SidebarNavigationProps {
   isOpen: boolean;
   onToggle: () => void;
-  locations?: Location[];
-  currentLocationId?: string;
-  onLocationSelect?: (locName: string) => void;
   activeView: string;
   onNavigate: (view: string) => void;
-  locationsStatus?: Record<string, { online: boolean; last_seen: string | null }>;
 }
 
-export function SidebarNavigation({ isOpen, onToggle, locations = [], currentLocationId, onLocationSelect, activeView, onNavigate, locationsStatus = {} }: SidebarNavigationProps) {
+export function SidebarNavigation({ isOpen, onToggle, activeView, onNavigate }: SidebarNavigationProps) {
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const { user, logout, token } = useAuth();

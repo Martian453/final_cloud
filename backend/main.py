@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
 import os
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import Session, select, desc
+from sqlmodel import Session, select, desc, func
 from datetime import datetime
 from database import create_db_and_tables, get_session
 from models import Location, Device, Measurement, User
@@ -108,14 +108,18 @@ async def register_device(
         
         # Scenario B: User provided Smart Input (Area/Type) -> Auto-Generate ID
         elif payload.location_input:
-            # 1. Check for MATCHING Existing Location for this User
+            # 1. Check for MATCHING Existing Location for this User (case-insensitive)
+            input_area = payload.location_input.area.strip().lower()
+            input_site_type = payload.location_input.site_type.strip().lower()
+            input_label = payload.location_input.label.strip().lower() if payload.location_input.label else None
+            
             query = select(Location).where(
                 Location.owner_id == current_user.id,
-                Location.area == payload.location_input.area,
-                Location.site_type == payload.location_input.site_type
+                func.lower(Location.area) == input_area,
+                func.lower(Location.site_type) == input_site_type
             )
-            if payload.location_input.label:
-                query = query.where(Location.label == payload.location_input.label)
+            if input_label:
+                query = query.where(func.lower(Location.label) == input_label)
             else:
                 query = query.where(Location.label == None)
             

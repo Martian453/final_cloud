@@ -434,12 +434,8 @@ export function PrivateDashboard() {
             <SidebarNavigation
                 isOpen={isSidebarOpen}
                 onToggle={() => setIsSidebarOpen((v) => !v)}
-                locations={locations}
-                currentLocationId={currentLocation}
-                onLocationSelect={handleLocationSelect}
                 activeView={activeView}
                 onNavigate={setActiveView}
-                locationsStatus={locationsStatus}
             />
 
             <div className="transition-all duration-700">
