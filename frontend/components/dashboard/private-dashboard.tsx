@@ -543,7 +543,7 @@ export function PrivateDashboard() {
                                 <div className="mx-auto mt-6 grid w-full max-w-6xl grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr]">
                                     <div className="h-[350px]">
                                         <div className="h-[350px]">
-                                            <PredictiveChart />
+                                            <PredictiveChart data={safeAirData.chartData} />
                                         </div>
                                     </div>
                                     <div className="h-[350px]"><LeafletMapCard locations={Object.values(locationsStatus)} /></div>
