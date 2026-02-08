@@ -29,8 +29,8 @@ export function PrivateDashboard() {
 
     // PRODUCTIZATION STATE
     const [activeMetric, setActiveMetric] = useState("pm25");
-    const [activeWaterMetric, setActiveWaterMetric] = useState("level");
-    const [modalConfig, setModalConfig] = useState<{ isOpen: boolean; type: 'air' | 'water' | null }>({ isOpen: false, type: null });
+    const [activeWaterMetric, setActiveWaterMetric] = useState<string | null>(null);
+    const [modalConfig, setModalConfig] = useState<{ isOpen: boolean; type: 'aqi' | 'water' | null }>({ isOpen: false, type: null });
     const [timeRange, setTimeRange] = useState<"1h" | "24h" | "7d">("1h");
 
     // HYDRATION GUARD INITIALIZATION
@@ -359,6 +359,60 @@ export function PrivateDashboard() {
     const safeWaterData = waterData || { level: 0, ph: 0, turbidity: 0, chartData: { labels: [], level: [], ph: [], turbidity: [] } };
     const maxPm25Recorded = airData ? Math.max(airData.pm25, ...(airData.chartData?.pm25 || [])) : 0;
 
+    // --- INTERACTION HANDLERS ---
+    const handlePollutantSelect = (pollutant: string | null) => {
+        // Toggle logic: If clicking already active, deselect. Else select.
+        setActiveMetric(prev => prev === pollutant ? "pm25" : (pollutant || "pm25")); // Default back to pm25 or null? User asked for "Show All" implies null support.
+        // Actually, the card might expect a string. Let's adjust state to allow null if we want "Show All" on the graph.
+        // But existing charts might expect a string activeMetric.
+        // Let's stick to the requested behavior: "If the clicked tile IS currently selected: Set state to null".
+        // We'll need to update state type:
+    }
+
+    // STATE LIFTING: "selectedPollutant" (null = Show All)
+    const [selectedPollutant, setSelectedPollutant] = useState<string | null>(null);
+    const [selectedWaterMetric, setSelectedWaterMetric] = useState<string | null>(null);
+
+    const handleTileClick = (metric: string | null) => {
+        if (!metric) {
+            setSelectedPollutant(null);
+            return;
+        }
+        setSelectedPollutant(prev => prev === metric ? null : metric);
+    }
+
+    const handleWaterTileClick = (metric: string | null) => {
+        if (!metric) {
+            setSelectedWaterMetric(null);
+            return;
+        }
+        setSelectedWaterMetric(prev => prev === metric ? null : metric);
+    }
+
+    // Fullscreen Modal Data Mapping
+    const getModalData = () => {
+        if (modalConfig.type === 'aqi' && safeAirData.chartData.labels.length > 0) {
+            return safeAirData.chartData.labels.map((l, i) => ({
+                time: l,
+                pm25: safeAirData.chartData.pm25[i],
+                pm10: safeAirData.chartData.pm10[i],
+                co: safeAirData.chartData.co[i],
+                no2: safeAirData.chartData.no2[i],
+                o3: safeAirData.chartData.o3?.[i] || 0,
+                so2: safeAirData.chartData.so2?.[i] || 0,
+            }));
+        }
+        if (modalConfig.type === 'water' && safeWaterData.chartData.labels.length > 0) {
+            return safeWaterData.chartData.labels.map((l, i) => ({
+                time: l,
+                level: safeWaterData.chartData.level[i],
+                ph: safeWaterData.chartData.ph[i],
+                turbidity: safeWaterData.chartData.turbidity[i],
+            }));
+        }
+        return [];
+    }
+
     if (!mounted) return null;
 
     return (
@@ -448,37 +502,40 @@ export function PrivateDashboard() {
                                             <div className="flex-1">
                                                 <AirQualityCard
                                                     data={safeAirData}
-                                                    activeMetric={activeMetric}
-                                                    onMetricSelect={setActiveMetric}
-                                                    onExpand={() => setModalConfig({ isOpen: true, type: 'air' })}
+                                                    activeMetric={selectedPollutant}
+                                                    onMetricSelect={handleTileClick}
+                                                    onExpand={() => setModalConfig({ isOpen: true, type: 'aqi' })}
                                                     isOffline={isAirOffline}
                                                 />
                                             </div>
                                         </div>
                                     )}
                                     {/* Col 2 */}
-                                    <EnvironmentalCore
-                                        aqi={airData?.pm25 ?? 0}
-                                        lastUpdate={lastMessageTime ? new Date(lastMessageTime).toLocaleTimeString() : "--:--"}
-                                        maxPm25={maxPm25Recorded}
-                                        currentPm25={airData?.pm25 ?? 0}
-                                        maxWaterLevel={maxWaterLevel}
-                                        currentWaterLevel={waterData?.level ?? 0}
-                                        isOffline={locationStatus === "OFFLINE"}
-                                    />
+                                    <div className="relative h-[600px] w-full"> {/* Fixed Height Container for 3D */}
+                                        <EnvironmentalCore
+                                            aqi={airData?.pm25 ?? 0}
+                                            lastUpdate={lastMessageTime ? new Date(lastMessageTime).toLocaleTimeString() : "--:--"}
+                                            maxPm25={maxPm25Recorded}
+                                            currentPm25={airData?.pm25 ?? 0}
+                                            maxWaterLevel={maxWaterLevel}
+                                            currentWaterLevel={waterData?.level ?? 0}
+                                            isOffline={locationStatus === "OFFLINE"}
+                                        />
+                                    </div>
+
                                     {/* Col 3 */}
                                     {capabilities.has_water && (
                                         <div className={`flex flex-col gap-6 h-full transition-all duration-500`}>
                                             <div className="flex-[1.5] min-h-[300px]">
                                                 <WaterQualityCard
                                                     data={safeWaterData}
-                                                    activeMetric={activeWaterMetric}
-                                                    onMetricSelect={setActiveWaterMetric}
+                                                    activeMetric={selectedWaterMetric}
+                                                    onMetricSelect={handleWaterTileClick}
                                                     onExpand={() => setModalConfig({ isOpen: true, type: 'water' })}
                                                     isOffline={isWaterOffline}
                                                 />
                                             </div>
-                                            <div className="flex-1 min-h-[250px]"><PollutantDonutChart /></div>
+                                            <div className="flex-1 min-h-[250px]"><PollutantDonutChart airData={safeAirData} /></div>
                                         </div>
                                     )}
                                 </div>
@@ -553,19 +610,12 @@ export function PrivateDashboard() {
                 <ChartModal
                     isOpen={modalConfig.isOpen}
                     onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
-                    title={modalConfig.type === 'air' ? `Air Quality Analysis: ${activeMetric.toUpperCase()}` : `Water Quality Analysis: ${activeWaterMetric}`}
-                    data={modalConfig.type === 'air'
-                        ? safeAirData.chartData.labels.map((l, i) => ({
-                            time: l,
-                            value: safeAirData.chartData[activeMetric as keyof typeof safeAirData.chartData]?.[i] ?? 0
-                        }))
-                        : safeWaterData.chartData.labels.map((l, i) => ({
-                            time: l,
-                            value: safeWaterData.chartData[activeWaterMetric as keyof typeof safeWaterData.chartData]?.[i] ?? 0
-                        }))
-                    }
-                    dataKey="value"
-                    color={modalConfig.type === 'air' ? '#34d399' : '#22d3ee'}
+                    chartType={modalConfig.type}
+                    data={getModalData()}
+                    selectedPollutant={selectedPollutant}
+                    onPollutantSelect={handleTileClick}
+                    selectedWaterMetric={selectedWaterMetric}
+                    onWaterMetricSelect={handleWaterTileClick}
                 />
             </div>
         </div>

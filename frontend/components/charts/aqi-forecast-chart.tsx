@@ -5,14 +5,15 @@ import { useMemo, useState } from "react"
 
 interface MetricHistoryChartProps {
     data: any[] // Array of history objects { label, pm25, pm10, co, no2 }
-    activeMetric: string
+    activeMetric: string | null
+    onMetricSelect?: (metric: string | null) => void
     timeRange: "1h" | "24h" | "7d"
     onTimeRangeChange: (range: "1h" | "24h" | "7d") => void
 }
 
-export function MetricHistoryChart({ data, activeMetric, timeRange, onTimeRangeChange }: MetricHistoryChartProps) {
+export function MetricHistoryChart({ data, activeMetric, onMetricSelect, timeRange, onTimeRangeChange }: MetricHistoryChartProps) {
     const [hoveredTime, setHoveredTime] = useState<string | null>(null)
-    const [activeLines, setActiveLines] = useState<string[]>(["pm25"]) // Track which lines are visible
+    const [activeLines, setActiveLines] = useState<string[]>([]) // Track which lines are visible
 
     // Process data based on time range
     const chartData = useMemo(() => {
@@ -48,25 +49,37 @@ export function MetricHistoryChart({ data, activeMetric, timeRange, onTimeRangeC
         { key: 'so2', label: 'SO2', color: '#f43f5e' },    // Rose
     ]
 
-    // Toggle line visibility when clicking on legend or using activeMetric
-    const toggleLine = (metric: string) => {
-        setActiveLines(prev => {
-            if (prev.includes(metric)) {
-                // Don't allow removing the last line
-                if (prev.length === 1) return prev
-                return prev.filter(m => m !== metric)
-            } else {
-                return [...prev, metric]
-            }
-        })
-    }
-
-    // Sync activeMetric with activeLines (Exclusive Mode)
+    // Sync activeMetric with activeLines
     useMemo(() => {
         if (activeMetric) {
             setActiveLines([activeMetric])
+        } else {
+            // Show All Mode
+            setActiveLines(metrics.map(m => m.key))
         }
     }, [activeMetric])
+
+    // Toggle line logic: Mirrors Tile Behavior (Single Select / Toggle)
+    const toggleLine = (metric: string) => {
+        if (onMetricSelect) {
+            // If clicking the current active metric -> Deselect (Show All)
+            // If clicking a different metric -> Select it
+            // If currently Show All (null) -> Select it
+            onMetricSelect(activeMetric === metric ? null : metric)
+        } else {
+            // Fallback local behavior if no callback (shouldn't happen in this integ)
+            // But let's keep it simple: just do nothing or local toggle?
+            // Local toggle multi-select logic:
+            setActiveLines(prev => {
+                if (prev.includes(metric)) {
+                    if (prev.length === 1) return prev
+                    return prev.filter(m => m !== metric)
+                } else {
+                    return [...prev, metric]
+                }
+            })
+        }
+    }
 
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (!active || !payload) return null
@@ -126,29 +139,41 @@ export function MetricHistoryChart({ data, activeMetric, timeRange, onTimeRangeC
             </div>
 
             {/* Interactive Legend */}
-            <div className="relative z-10 flex flex-wrap gap-3 mb-4">
+            <div className="relative z-10 flex flex-wrap gap-3 mb-4 items-center">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mr-2">Filters:</span>
                 {metrics.map((metric) => (
                     <button
                         key={metric.key}
                         onClick={() => toggleLine(metric.key)}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all duration-300 ${activeLines.includes(metric.key)
-                            ? "border-white/20 bg-white/10 shadow-sm"
-                            : "border-white/5 bg-slate-900/50 opacity-50 hover:opacity-70"
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all duration-300 ${activeMetric === metric.key
+                            // Strict single select highlighting
+                            ? "border-emerald-500/50 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                            : activeMetric && activeMetric !== metric.key
+                                ? "opacity-40 border-transparent text-slate-600" // Recede inactive
+                                : "border-white/5 bg-slate-900/50 hover:bg-slate-800" // Neutral (Show All)
                             }`}
                     >
                         <div
-                            className={`w-3 h-3 rounded-full transition-all ${activeLines.includes(metric.key) ? 'animate-pulse' : ''
-                                }`}
+                            className={`w-3 h-3 rounded-full transition-all ${activeMetric === metric.key ? 'animate-pulse' : ''}`}
                             style={{
-                                backgroundColor: activeLines.includes(metric.key) ? metric.color : 'rgba(148, 163, 184, 0.3)'
+                                backgroundColor: metric.color
                             }}
                         />
-                        <span className={`text-xs font-semibold ${activeLines.includes(metric.key) ? 'text-white' : 'text-slate-500'
-                            }`}>
+                        <span className={`text-xs font-semibold ${activeMetric === metric.key ? 'text-white' : 'text-slate-400'}`}>
                             {metric.label}
                         </span>
                     </button>
                 ))}
+
+                {/* Dynamically reveal 'Show All' or 'Reset' button */}
+                {activeMetric && (
+                    <button
+                        onClick={() => onMetricSelect && onMetricSelect(null)}
+                        className="ml-auto text-xs font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors animate-in fade-in slide-in-from-left-2"
+                    >
+                        Reset View
+                    </button>
+                )}
             </div>
 
             <div className="relative z-10 flex-1 w-full min-h-[200px]">
