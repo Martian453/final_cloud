@@ -108,34 +108,59 @@ async def register_device(
         
         # Scenario B: User provided Smart Input (Area/Type) -> Auto-Generate ID
         elif payload.location_input:
-            area = payload.location_input.area.upper().replace(" ", "")
-            site_type = payload.location_input.site_type.upper().replace(" ", "")
-            
-            # Find next index
-            existing_locs = session.exec(select(Location).where(Location.area == payload.location_input.area, Location.site_type == payload.location_input.site_type)).all()
-            index = len(existing_locs) + 1
-            
-            generated_id = f"{area}_{site_type}_{index:02d}"
-            
-            # Create readable name
-            friendly = f"{payload.location_input.area} {payload.location_input.site_type} #{index}"
-            if payload.location_input.label:
-                friendly += f" ({payload.location_input.label})"
-            
-            # Create new location linked to user
-            loc = Location(
-                name=generated_id,
-                display_name=friendly,
-                area=payload.location_input.area,
-                site_type=payload.location_input.site_type,
-                label=payload.location_input.label,
-                latitude=payload.location_input.latitude,
-                longitude=payload.location_input.longitude,
-                owner_id=current_user.id # Set Owner
+            # 1. Check for MATCHING Existing Location for this User
+            query = select(Location).where(
+                Location.owner_id == current_user.id,
+                Location.area == payload.location_input.area,
+                Location.site_type == payload.location_input.site_type
             )
-            session.add(loc)
-            session.commit()
-            session.refresh(loc)
+            if payload.location_input.label:
+                query = query.where(Location.label == payload.location_input.label)
+            else:
+                query = query.where(Location.label == None)
+            
+            existing_user_loc = session.exec(query).first()
+
+            if existing_user_loc:
+                # REUSE Found Location
+                loc = existing_user_loc
+                # Optional: Update coordinates if provided
+                if payload.location_input.latitude and payload.location_input.longitude:
+                    loc.latitude = payload.location_input.latitude
+                    loc.longitude = payload.location_input.longitude
+                    session.add(loc)
+                    session.commit()
+                    session.refresh(loc)
+            else:
+                # CREATE NEW Location
+                area = payload.location_input.area.upper().replace(" ", "")
+                site_type = payload.location_input.site_type.upper().replace(" ", "")
+                
+                # Find next index
+                existing_locs = session.exec(select(Location).where(Location.area == payload.location_input.area, Location.site_type == payload.location_input.site_type)).all()
+                index = len(existing_locs) + 1
+                
+                generated_id = f"{area}_{site_type}_{index:02d}"
+                
+                # Create readable name
+                friendly = f"{payload.location_input.area} {payload.location_input.site_type} #{index}"
+                if payload.location_input.label:
+                    friendly += f" ({payload.location_input.label})"
+                
+                # Create new location linked to user
+                loc = Location(
+                    name=generated_id,
+                    display_name=friendly,
+                    area=payload.location_input.area,
+                    site_type=payload.location_input.site_type,
+                    label=payload.location_input.label,
+                    latitude=payload.location_input.latitude,
+                    longitude=payload.location_input.longitude,
+                    owner_id=current_user.id # Set Owner
+                )
+                session.add(loc)
+                session.commit()
+                session.refresh(loc)
 
         if not loc:
             raise HTTPException(status_code=400, detail="Unable to determine location.")

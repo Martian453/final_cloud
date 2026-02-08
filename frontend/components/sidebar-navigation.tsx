@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider";
-import { LayoutDashboard, Sun, Moon, Monitor, X, LogOut, Cpu, Download, MapPin, PlusCircle } from "lucide-react"
-import { useTheme } from "next-themes"
+import { LayoutDashboard, X, LogOut, Cpu, Download, MapPin, PlusCircle, Globe } from "lucide-react"
 import { RegisterDeviceModal } from "./dashboard/register-device-modal"
 
 interface Location {
@@ -27,7 +27,7 @@ interface SidebarNavigationProps {
 
 export function SidebarNavigation({ isOpen, onToggle, locations = [], currentLocationId, onLocationSelect, activeView, onNavigate, locationsStatus = {} }: SidebarNavigationProps) {
   const [mounted, setMounted] = useState(false);
-  const { theme, setTheme } = useTheme()
+  const router = useRouter();
   const { user, logout, token } = useAuth();
   const [showRegister, setShowRegister] = useState(false);
 
@@ -100,11 +100,10 @@ export function SidebarNavigation({ isOpen, onToggle, locations = [], currentLoc
     }
   }
 
-  const themes = [
-    { id: "light" as const, label: "Light", icon: Sun },
-    { id: "dark" as const, label: "Dark", icon: Moon },
-    { id: "system" as const, label: "System", icon: Monitor },
-  ]
+  const handleNearbyClick = () => {
+    router.push("/public");
+    onToggle();
+  };
 
   return (
     <>
@@ -224,6 +223,21 @@ export function SidebarNavigation({ isOpen, onToggle, locations = [], currentLoc
                 </div>
               </button>
             </li>
+
+            {/* Nearby Location Item */}
+            <li>
+              <button
+                onClick={handleNearbyClick}
+                className="group relative flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-slate-400 hover:bg-white/5 hover:text-white transition-all duration-300"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/5 text-slate-500 group-hover:bg-white/10 group-hover:text-white transition-all duration-300">
+                  <Globe className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Nearby Location</div>
+                </div>
+              </button>
+            </li>
           </ul>
 
           {/* MY LOCATIONS */}
@@ -268,16 +282,7 @@ export function SidebarNavigation({ isOpen, onToggle, locations = [], currentLoc
             )}
           </div>
 
-          {/* Theme Selector */}
-          <div className="mt-8">
-            <div className="flex gap-1 rounded-lg bg-white/5 p-1">
-              {themes.map((t) => (
-                <button key={t.id} onClick={() => setTheme(t.id)} className={`flex-1 rounded py-2 text-xs font-medium transition-all ${theme === t.id ? "bg-white/10 text-white" : "text-slate-500 hover:text-white"}`}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
+
         </nav>
 
         {/* User Footer */}

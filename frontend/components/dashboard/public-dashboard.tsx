@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { LogIn, MapPin, Wind, Droplets } from "lucide-react"
+import { LogIn, MapPin, Wind, Droplets, ArrowLeft } from "lucide-react"
+import { useAuth } from "@/components/auth-provider"
 import { AirQualityCard } from "@/components/air-quality-card"
 import { WaterQualityCard } from "@/components/water-quality-card"
 
 export function PublicDashboard() {
     const router = useRouter()
+    const { token } = useAuth() // Check if user is logged in
     const [locations, setLocations] = useState<any[]>([])
     const [selectedLocId, setSelectedLocId] = useState<string | null>(null)
     const selectedLoc = locations.find(l => l.location_id === selectedLocId)
@@ -47,19 +49,36 @@ export function PublicDashboard() {
                 const res = await fetch(`${apiUrl}/api/public/locations`)
                 const data = await res.json()
                 if (Array.isArray(data)) {
+                    // Helper to sort by Online status first
+                    const sortOnline = (list: any[]) => {
+                        return [...list].sort((a, b) => {
+                            if (a.online === b.online) return 0;
+                            return a.online ? -1 : 1; // Online first
+                        });
+                    };
+
                     if (navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition((pos) => {
                             const { latitude: userLat, longitude: userLng } = pos.coords;
                             const sorted = [...data].sort((a, b) => {
+                                // 1. Priority: Online Status
+                                if (a.online !== b.online) {
+                                    return a.online ? -1 : 1;
+                                }
+                                // 2. Secondary: Distance
                                 if (!a.latitude || !b.latitude) return 0;
                                 const distA = Math.hypot(a.latitude - userLat, a.longitude - userLng);
                                 const distB = Math.hypot(b.latitude - userLat, b.longitude - userLng);
                                 return distA - distB;
                             });
                             setLocations(sorted);
-                        }, () => setLocations(data));
+                        }, () => {
+                            // Geolocation failed/denied -> Sort by Online only
+                            setLocations(sortOnline(data));
+                        });
                     } else {
-                        setLocations(data)
+                        // No Geolocation support -> Sort by Online only
+                        setLocations(sortOnline(data))
                     }
                 } else {
                     setLocations([]);
@@ -145,13 +164,25 @@ export function PublicDashboard() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => router.push("/login")}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm font-semibold transition-all border border-white/5 hover:border-emerald-500/30 hover:shadow-[0_0_15px_rgba(52,211,153,0.2)]"
-                        >
-                            <LogIn className="h-4 w-4 text-emerald-400" />
-                            <span>Login</span>
-                        </button>
+                        {token ? (
+                            /* User is logged in - show Back button */
+                            <button
+                                onClick={() => router.push("/")}
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-sm font-semibold transition-all border border-emerald-500/30 hover:border-emerald-500/50 hover:shadow-[0_0_15px_rgba(52,211,153,0.2)]"
+                            >
+                                <ArrowLeft className="h-4 w-4 text-emerald-400" />
+                                <span className="text-emerald-400">My Dashboard</span>
+                            </button>
+                        ) : (
+                            /* User not logged in - show Login button */
+                            <button
+                                onClick={() => router.push("/login")}
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm font-semibold transition-all border border-white/5 hover:border-emerald-500/30 hover:shadow-[0_0_15px_rgba(52,211,153,0.2)]"
+                            >
+                                <LogIn className="h-4 w-4 text-emerald-400" />
+                                <span>Login</span>
+                            </button>
+                        )}
                     </div>
                 </header>
 
