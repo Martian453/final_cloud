@@ -11,6 +11,11 @@ from connection_manager import ConnectionManager
 
 app = FastAPI(title="Environmental Cloud API")
 
+# Create database tables on startup
+@app.on_event("startup")
+def on_startup():
+    create_db_and_tables()  # This runs every time the app starts
+
 # Initialize WebSocket Manager
 manager = ConnectionManager()
 
