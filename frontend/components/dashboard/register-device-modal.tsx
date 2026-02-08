@@ -36,27 +36,45 @@ export function RegisterDeviceModal({ isOpen, onClose, onSuccess }: RegisterDevi
             const protocol = window.location.protocol
             const apiUrl = `${protocol}//${host}:8000/api/devices/register`
 
+            // Construct payload matching backend RegisterDevicePayload
+            const payload = {
+                device_id: deviceId,
+                device_type: deviceType, // Backend expects 'device_type', frontend state is 'deviceType'
+                // owner_email is not needed if using token auth
+                location_input: {
+                    area: locationArea,
+                    site_type: "STATION", // Defaulting to STATION since form doesn't have it. User's 'Location Name' is better as label.
+                    label: locationName,
+                    latitude: parseFloat(lat),
+                    longitude: parseFloat(lng)
+                }
+            }
+
             const res = await fetch(apiUrl, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
                 },
-                body: JSON.stringify({
-                    device_id: deviceId,
-                    type: deviceType,
-                    owner_email: "user_from_token", // Backend ignores this usually if using Depends(user), but payload might need it
-                    location_name: locationName,
-                    area: locationArea,
-                    latitude: parseFloat(lat),
-                    longitude: parseFloat(lng)
-                })
+                body: JSON.stringify(payload)
             })
 
             const data = await res.json()
 
             if (!res.ok) {
-                throw new Error(data.detail || "Registration failed")
+                // Handle different error formats (string, object, array of Pydantic errors)
+                let errorMessage = "Registration failed";
+                if (data.detail) {
+                    if (typeof data.detail === 'string') {
+                        errorMessage = data.detail;
+                    } else if (Array.isArray(data.detail)) {
+                        // Pydantic validation errors
+                        errorMessage = data.detail.map((e: any) => `${e.loc.join('.')} - ${e.msg}`).join(', ');
+                    } else if (typeof data.detail === 'object') {
+                        errorMessage = JSON.stringify(data.detail);
+                    }
+                }
+                throw new Error(errorMessage)
             }
 
             // Success
@@ -65,9 +83,12 @@ export function RegisterDeviceModal({ isOpen, onClose, onSuccess }: RegisterDevi
             // Reset form
             setDeviceId("")
             setLocationName("")
+            setLat("")
+            setLng("")
 
         } catch (err: any) {
-            setError(err.message)
+            console.error("Registration Error:", err)
+            setError(err.message || "An unexpected error occurred")
         } finally {
             setLoading(false)
         }

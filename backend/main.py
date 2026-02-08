@@ -48,14 +48,14 @@ class LocationInput(BaseModel):
     area: str
     site_type: str
     label: Optional[str] = None
+    latitude: float
+    longitude: float
 
 class RegisterDevicePayload(BaseModel):
     device_id: str
     device_type: str
     # location_id: str  <-- Removed, replaced by input
     location_input: Optional[LocationInput] = None
-    location_id: Optional[str] = None # Allow manual ID if needed (backward compat)
-
     location_id: Optional[str] = None # Allow manual ID if needed (backward compat)
 
 # Pydantic Model for Ingestion
@@ -129,6 +129,8 @@ async def register_device(
                 area=payload.location_input.area,
                 site_type=payload.location_input.site_type,
                 label=payload.location_input.label,
+                latitude=payload.location_input.latitude,
+                longitude=payload.location_input.longitude,
                 owner_id=current_user.id # Set Owner
             )
             session.add(loc)
