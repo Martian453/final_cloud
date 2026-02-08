@@ -51,12 +51,7 @@ export function SidebarNavigation({ isOpen, onToggle, activeView, onNavigate }: 
     if (itemId === "dashboard" || itemId === "devices") onToggle()
   }
 
-  const handleLocationClick = (locName: string) => {
-    if (onLocationSelect) {
-      onLocationSelect(locName);
-      onToggle();
-    }
-  }
+
 
   const handleDownloadCSV = async () => {
     if (!token) return;
