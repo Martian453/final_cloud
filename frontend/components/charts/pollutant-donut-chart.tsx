@@ -29,7 +29,7 @@ export function PollutantDonutChart({ airData }: PollutantDonutChartProps) {
 
     const data = useMemo(() => {
         if (!airData) return [
-            { name: "Loading...", value: 1, color: "#334155" }
+            { name: "Loading...", value: 1, rawValue: 0, unit: "", color: "#334155" }
         ];
 
         // Ensure we handle CO unit conversion (ppb -> ppm) if raw data is passed
@@ -37,12 +37,12 @@ export function PollutantDonutChart({ airData }: PollutantDonutChartProps) {
         const coPpm = airData.co / 1000;
 
         const scores = [
-            { name: "PM2.5", value: calculateSubIndex(airData.pm25, 'pm25'), color: "#fb923c" }, // Orange-400
-            { name: "PM10", value: calculateSubIndex(airData.pm10, 'pm10'), color: "#facc15" },  // Yellow-400
-            { name: "NO2", value: calculateSubIndex(airData.no2, 'no2'), color: "#a855f7" },    // Purple-500
-            { name: "SO2", value: calculateSubIndex(airData.so2, 'so2'), color: "#f43f5e" },    // Rose-500
-            { name: "CO", value: calculateSubIndex(coPpm, 'co'), color: "#34d399" },       // Emerald-400
-            { name: "O3", value: calculateSubIndex(airData.o3 || 0, 'o3'), color: "#3b82f6" },   // Blue-500
+            { name: "PM2.5", value: calculateSubIndex(airData.pm25, 'pm25'), rawValue: airData.pm25, unit: "µg/m³", color: "#fb923c" },
+            { name: "PM10", value: calculateSubIndex(airData.pm10, 'pm10'), rawValue: airData.pm10, unit: "µg/m³", color: "#facc15" },
+            { name: "NO2", value: calculateSubIndex(airData.no2, 'no2'), rawValue: airData.no2, unit: "µg/m³", color: "#a855f7" },
+            { name: "SO2", value: calculateSubIndex(airData.so2, 'so2'), rawValue: airData.so2, unit: "µg/m³", color: "#f43f5e" },
+            { name: "CO", value: calculateSubIndex(coPpm, 'co'), rawValue: airData.co, unit: "ppb", color: "#34d399" },
+            { name: "O3", value: calculateSubIndex(airData.o3 || 0, 'o3'), rawValue: airData.o3 || 0, unit: "µg/m³", color: "#3b82f6" },
         ];
 
         // Filter out zero-impact pollutants to clean up chart, or keep top N?
@@ -51,7 +51,7 @@ export function PollutantDonutChart({ airData }: PollutantDonutChartProps) {
         const activePollutants = scores.filter(s => s.value > 0);
 
         if (activePollutants.length === 0) {
-            return [{ name: "Clean Air", value: 1, color: "#10b981" }];
+            return [{ name: "Clean Air", value: 1, rawValue: 0, unit: "", color: "#10b981" }];
         }
 
         return activePollutants.sort((a, b) => b.value - a.value);
@@ -94,6 +94,11 @@ export function PollutantDonutChart({ airData }: PollutantDonutChartProps) {
                         {activeItem.name}
                     </span>
                     <span className="text-[8px] text-slate-500">Sub-Index</span>
+                    {activeItem.rawValue !== undefined && (
+                        <span className="text-[9px] text-cyan-400 mt-1">
+                            (from {activeItem.rawValue?.toFixed(1)} {activeItem.unit})
+                        </span>
+                    )}
                 </div>
 
                 <ResponsiveContainer width="100%" height="100%">
