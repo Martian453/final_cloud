@@ -56,12 +56,11 @@ export function SidebarNavigation({ isOpen, onToggle, activeView, onNavigate }: 
   const handleDownloadCSV = async () => {
     if (!token) return;
     try {
-      // Authenticated Backend Export
-      const protocol = window.location.protocol;
-      const host = window.location.hostname;
-      const apiUrl = `${protocol}//${host}:8000/api/export/csv`;
+      // Use environment variable for API URL (works both locally and on production)
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const exportUrl = `${apiUrl}/api/export/csv`;
 
-      const res = await fetch(apiUrl, {
+      const res = await fetch(exportUrl, {
         headers: { "Authorization": `Bearer ${token}` }
       });
 

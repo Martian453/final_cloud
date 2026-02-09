@@ -327,42 +327,6 @@ async def get_system_status(
         "last_ingest_ts": last_ts.isoformat() if last_ts else None
     }
 
-from fastapi.responses import StreamingResponse
-import csv
-import io
-
-@app.get("/api/export/csv")
-async def export_csv(
-    current_user: User = Depends(auth.get_current_user),
-    session: Session = Depends(get_session)
-):
-    # Export measurements for user's locations
-    # 1. Get user location IDs
-    loc_stmt = select(Location.id).join(Device).where(Device.owner_id == current_user.id)
-    user_loc_ids = session.exec(loc_stmt).all()
-    
-    if not user_loc_ids:
-        # Return empty CSV
-        return StreamingResponse(io.StringIO("timestamp,location_id,device_id,type,value\n"), media_type="text/csv")
-
-    # 2. Get Measurements (Limit 1000 for safety or filter by date)
-    stmt = select(Measurement).where(Measurement.location_id.in_(user_loc_ids)).order_by(Measurement.timestamp.desc()).limit(1000)
-    data = session.exec(stmt).all()
-    
-    # 3. Generate CSV
-    buffer = io.StringIO()
-    writer = csv.writer(buffer)
-    writer.writerow(["timestamp", "location_id", "device_id", "type", "value"])
-    
-    for row in data:
-        writer.writerow([row.timestamp, row.location_id, row.device_id, row.type, row.value])
-    
-    buffer.seek(0)
-    return StreamingResponse(
-        iter([buffer.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=report_{datetime.utcnow().strftime('%Y%m%d')}.csv"}
-    )
 
 @app.get("/api/locations/status")
 async def get_locations_status(
