@@ -21,7 +21,7 @@ pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tessera
 API_URL = "https://eco-intelligence.onrender.com/api/ingest" 
 
 # DEVICE CONFIG
-DEVICE_ID_CAM = "DEV_AQI_CAM_01" 
+DEVICE_ID_CAM = "DEV_CAM_01" 
 # DEVICE_ID_WATER = "DEV_WATER_01" # ⚠️ Managed directly by ESP32 now
 
 # ESP_URL = "http://10.161.184.150/data" # Deprecated: ESP32 sends directly to Cloud
