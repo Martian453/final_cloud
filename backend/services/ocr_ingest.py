@@ -22,8 +22,8 @@ API_URL = "https://eco-intelligence.onrender.com/api/ingest"
 # API_URL = "http://localhost:8000/api/ingest"
 
 # DEVICE CONFIG
-DEVICE_ID_CAM = "DEV_CAM_01"
-#DEVICE_ID_CAM = "DEV_AQI_CAM_01"
+#DEVICE_ID_CAM = "DEV_CAM_01"
+DEVICE_ID_CAM = "DEV_AQI_CAM_01"
 
 # DEVICE_ID_WATER = "DEV_WATER_01" # ⚠️ Managed directly by ESP32 now
 
