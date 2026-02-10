@@ -358,6 +358,7 @@ export function PrivateDashboard() {
     };
     const safeWaterData = waterData || { level: 0, ph: 0, turbidity: 0, chartData: { labels: [], level: [], ph: [], turbidity: [] } };
     const maxPm25Recorded = airData ? Math.max(airData.pm25, ...(airData.chartData?.pm25 || [])) : 0;
+    const maxWaterLevelRecorded = waterData ? Math.max(waterData.level, ...(waterData.chartData?.level || [])) : 0;
 
     // --- INTERACTION HANDLERS ---
     const handlePollutantSelect = (pollutant: string | null) => {
@@ -513,7 +514,7 @@ export function PrivateDashboard() {
                                             lastUpdate={lastMessageTime ? new Date(lastMessageTime).toLocaleTimeString() : "--:--"}
                                             maxPm25={maxPm25Recorded}
                                             currentPm25={airData?.pm25 ?? 0}
-                                            maxWaterLevel={maxWaterLevel}
+                                            maxWaterLevel={maxWaterLevelRecorded}
                                             currentWaterLevel={waterData?.level ?? 0}
                                             isOffline={locationStatus === "OFFLINE"}
                                         />
