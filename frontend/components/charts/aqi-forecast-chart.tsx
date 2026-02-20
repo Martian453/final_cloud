@@ -29,15 +29,26 @@ export function MetricHistoryChart({ data, activeMetric, onMetricSelect, timeRan
         }
         // 7d = all available data
 
-        return filteredData.map(d => ({
-            time: d.label || d.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            pm25: d.pm25 ?? 0,
-            pm10: d.pm10 ?? 0,
-            co: d.co ?? 0,
-            no2: d.no2 ?? 0,
-            o3: d.o3 ?? 0,
-            so2: d.so2 ?? 0,
-        }));
+        return filteredData.map(d => {
+            // Parse ISO timestamp (sent by backend) and convert to local time
+            const rawLabel = d.label || d.time || "";
+            let displayTime = rawLabel;
+            if (rawLabel && rawLabel.includes("T")) {
+                // ISO format: parse and display in local time
+                try {
+                    displayTime = new Date(rawLabel).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                } catch { displayTime = rawLabel; }
+            }
+            return {
+                time: displayTime,
+                pm25: d.pm25 ?? 0,
+                pm10: d.pm10 ?? 0,
+                co: d.co ?? 0,
+                no2: d.no2 ?? 0,
+                o3: d.o3 ?? 0,
+                so2: d.so2 ?? 0,
+            };
+        });
     }, [data, timeRange]);
 
     const metrics = [

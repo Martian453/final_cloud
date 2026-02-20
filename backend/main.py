@@ -503,8 +503,9 @@ def get_public_locations(session: Session = Depends(get_session)):
             history_measures = session.exec(select(Measurement).where(Measurement.device_id.in_(device_ids)).order_by(Measurement.timestamp.desc()).limit(100)).all()
             history_measures.reverse() 
             
-            # Time Bucketing for Charts
+            # Time Bucketing for Charts (use HH:MM as key, store ISO for labels)
             time_buckets = {}
+            time_bucket_iso = {}  # maps HH:MM key -> ISO string for label
             
             for hm in history_measures:
                 # Normalize Type
@@ -513,11 +514,14 @@ def get_public_locations(session: Session = Depends(get_session)):
                     ts_str = hm.timestamp.strftime("%H:%M")
                     if ts_str not in time_buckets:
                         time_buckets[ts_str] = {}
+                        # Store full ISO timestamp (with Z = UTC) for this bucket
+                        time_bucket_iso[ts_str] = hm.timestamp.isoformat() + "Z"
                     time_buckets[ts_str][key] = hm.value
             
             # Flatten to arrays (Sorted by time)
             sorted_times = sorted(time_buckets.keys())
-            chart_history["labels"] = sorted_times
+            # Send ISO timestamps so client can convert to local time
+            chart_history["labels"] = [time_bucket_iso[t] for t in sorted_times]
             
             # Explicit keys to ensure all arrays are populated equally
             metrics = ["pm25", "pm10", "co", "no2", "o3", "so2", "level", "ph", "turbidity"]

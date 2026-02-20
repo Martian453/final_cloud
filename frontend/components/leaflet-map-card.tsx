@@ -52,16 +52,22 @@ function MapController({ locations }: { locations: LocationData[] }) {
     const map = useMap()
 
     useEffect(() => {
-        // Ensure map size is correct after dynamic import
-        map.invalidateSize();
-        const validLocs = locations.filter(l => l.latitude && l.longitude);
-        if (validLocs.length > 0) {
-            const bounds = L.latLngBounds(validLocs.map(l => [l.latitude!, l.longitude!]));
-            map.fitBounds(bounds, { padding: [80, 80], maxZoom: 14 });
-        } else {
-            // Fallback: No valid locations, center on Bangalore
-            map.setView([12.9716, 77.5946], 12);
-        }
+        // Small delay so the DOM container finishes painting before size measurement
+        const timer = setTimeout(() => {
+            map.invalidateSize();
+            const validLocs = locations.filter(l => l.latitude && l.longitude);
+            if (validLocs.length === 1) {
+                // Single location: use setView directly — fitBounds on a point zooms to level 18+
+                map.setView([validLocs[0].latitude!, validLocs[0].longitude!], 13);
+            } else if (validLocs.length > 1) {
+                const bounds = L.latLngBounds(validLocs.map(l => [l.latitude!, l.longitude!]));
+                map.fitBounds(bounds, { padding: [60, 60], maxZoom: 13 });
+            } else {
+                // Fallback: No valid locations, center on Bangalore
+                map.setView([12.9716, 77.5946], 12);
+            }
+        }, 100);
+        return () => clearTimeout(timer);
     }, [locations, map])
 
     return null
@@ -93,7 +99,8 @@ export function LeafletMapCard({ locations = [] }: LeafletMapCardProps) {
             >
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    className="dark-tiles"
                 />
 
                 {validLocations.map((loc) => (
@@ -117,9 +124,12 @@ export function LeafletMapCard({ locations = [] }: LeafletMapCardProps) {
                 <MapController locations={validLocations} />
             </MapContainer>
 
-            {/* Overlay Gradients */}
-            <div className="pointer-events-none absolute inset-0 z-[500] bg-gradient-to-t from-[#050511] via-transparent to-transparent opacity-60" />
+            {/* Subtle border ring only */}
             <div className="pointer-events-none absolute inset-0 z-[500] ring-1 ring-inset ring-white/10 rounded-2xl" />
+            <style>{`
+                .dark-tiles { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
+                .leaflet-marker-icon, .leaflet-marker-shadow { filter: none !important; }
+            `}</style>
         </div>
     )
 }
