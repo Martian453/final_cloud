@@ -7,6 +7,35 @@ import { useAuth } from "@/components/auth-provider"
 import { AirQualityCard } from "@/components/air-quality-card"
 import { WaterQualityCard } from "@/components/water-quality-card"
 
+// --- Status Helpers ---
+function getAqiStatus(pm25: number) {
+    if (pm25 <= 0) return { label: "--", color: "text-slate-500" };
+    if (pm25 <= 12) return { label: "Good", color: "text-emerald-400" };
+    if (pm25 <= 35.4) return { label: "Moderate", color: "text-yellow-400" };
+    if (pm25 <= 55.4) return { label: "USG", color: "text-orange-400" };
+    if (pm25 <= 150.4) return { label: "Unhealthy", color: "text-red-400" };
+    if (pm25 <= 250.4) return { label: "V.Unhealthy", color: "text-purple-400" };
+    return { label: "Hazardous", color: "text-rose-500" };
+}
+
+function getWaterStatus(ph: number, turbidity: number) {
+    if (ph === 0 && turbidity === 0) return { label: "--", color: "text-slate-500" };
+    const phOk = ph >= 6.5 && ph <= 8.5;
+    const turbOk = turbidity < 5;
+    if (phOk && turbOk) return { label: "Safe", color: "text-emerald-400" };
+    if (phOk || turbOk) return { label: "Warning", color: "text-yellow-400" };
+    return { label: "Critical", color: "text-red-400" };
+}
+
+// Haversine distance (km)
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export function PublicDashboard() {
     const router = useRouter()
     const { token } = useAuth() // Check if user is logged in
@@ -14,6 +43,7 @@ export function PublicDashboard() {
     const [selectedLocId, setSelectedLocId] = useState<string | null>(null)
     const selectedLoc = locations.find(l => l.location_id === selectedLocId)
     const [loading, setLoading] = useState(true)
+    const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null)
 
     // Interactive State
     const [activeMetric, setActiveMetric] = useState<string | null>("pm25")
@@ -60,20 +90,20 @@ export function PublicDashboard() {
                     if (navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition((pos) => {
                             const { latitude: userLat, longitude: userLng } = pos.coords;
-                            const sorted = [...data].sort((a, b) => {
-                                // 1. Priority: Online Status
-                                if (a.online !== b.online) {
-                                    return a.online ? -1 : 1;
-                                }
-                                // 2. Secondary: Distance
-                                if (!a.latitude || !b.latitude) return 0;
-                                const distA = Math.hypot(a.latitude - userLat, a.longitude - userLng);
-                                const distB = Math.hypot(b.latitude - userLat, b.longitude - userLng);
-                                return distA - distB;
+                            setUserPos({ lat: userLat, lng: userLng });
+                            const withDist = data.map((loc: any) => ({
+                                ...loc,
+                                distanceKm: (loc.latitude && loc.longitude)
+                                    ? haversineKm(userLat, userLng, loc.latitude, loc.longitude)
+                                    : null
+                            }));
+                            const sorted = [...withDist].sort((a, b) => {
+                                if (a.online !== b.online) return a.online ? -1 : 1;
+                                if (a.distanceKm != null && b.distanceKm != null) return a.distanceKm - b.distanceKm;
+                                return 0;
                             });
                             setLocations(sorted);
                         }, () => {
-                            // Geolocation failed/denied -> Sort by Online only
                             setLocations(sortOnline(data));
                         });
                     } else {
@@ -282,7 +312,12 @@ export function PublicDashboard() {
                                                         </div>
                                                         <div>
                                                             <h3 className="font-bold text-lg text-white group-hover:text-emerald-400 transition-colors">{loc.name}</h3>
-                                                            <p className="text-sm text-slate-500">{loc.area}</p>
+                                                            <p className="text-sm text-slate-500">
+                                                                {loc.area}
+                                                                {loc.distanceKm != null && (
+                                                                    <span className="ml-1 text-cyan-500">• {loc.distanceKm < 1 ? `${(loc.distanceKm * 1000).toFixed(0)} m` : `${loc.distanceKm.toFixed(1)} km`} away</span>
+                                                                )}
+                                                            </p>
                                                         </div>
                                                     </div>
                                                     <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${loc.online ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>
@@ -291,16 +326,24 @@ export function PublicDashboard() {
                                                 </div>
 
                                                 <div className="grid grid-cols-2 gap-4 mt-6">
-                                                    <div className="bg-black/40 rounded-xl p-3 border border-white/5 text-center group-hover:border-white/10 transition-colors">
-                                                        <Wind className="h-5 w-5 mx-auto text-orange-400 mb-2" />
-                                                        <div className="text-xs text-slate-500">AQI Status</div>
-                                                        <div className="font-mono text-lg font-bold">{loc.online ? "Good" : "--"}</div>
-                                                    </div>
-                                                    <div className="bg-black/40 rounded-xl p-3 border border-white/5 text-center group-hover:border-white/10 transition-colors">
-                                                        <Droplets className="h-5 w-5 mx-auto text-blue-400 mb-2" />
-                                                        <div className="text-xs text-slate-500">Water Status</div>
-                                                        <div className="font-mono text-lg font-bold">{loc.online ? "Stable" : "--"}</div>
-                                                    </div>
+                                                    {(() => {
+                                                        const s = loc.online ? getAqiStatus(loc.data?.pm25 || 0) : { label: "--", color: "text-slate-500" }; return (
+                                                            <div className="bg-black/40 rounded-xl p-3 border border-white/5 text-center group-hover:border-white/10 transition-colors">
+                                                                <Wind className="h-5 w-5 mx-auto text-orange-400 mb-2" />
+                                                                <div className="text-xs text-slate-500">AQI Status</div>
+                                                                <div className={`font-mono text-lg font-bold ${s.color}`}>{s.label}</div>
+                                                            </div>
+                                                        )
+                                                    })()}
+                                                    {(() => {
+                                                        const s = loc.online ? getWaterStatus(loc.data?.ph || 0, loc.data?.turbidity || 0) : { label: "--", color: "text-slate-500" }; return (
+                                                            <div className="bg-black/40 rounded-xl p-3 border border-white/5 text-center group-hover:border-white/10 transition-colors">
+                                                                <Droplets className="h-5 w-5 mx-auto text-blue-400 mb-2" />
+                                                                <div className="text-xs text-slate-500">Water Status</div>
+                                                                <div className={`font-mono text-lg font-bold ${s.color}`}>{s.label}</div>
+                                                            </div>
+                                                        )
+                                                    })()}
                                                 </div>
 
                                                 {loc.online && (

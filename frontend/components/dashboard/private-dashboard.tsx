@@ -20,6 +20,11 @@ const LeafletMapCard = dynamic(
     { ssr: false }
 )
 
+const ChoroplethMapCard = dynamic(
+    () => import("@/components/choropleth-map-card").then((mod) => mod.ChoroplethMapCard),
+    { ssr: false }
+)
+
 export function PrivateDashboard() {
     const { token, user } = useAuth();
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
@@ -544,6 +549,16 @@ export function PrivateDashboard() {
                                         </div>
                                     </div>
                                     <div className="h-[350px]"><LeafletMapCard locations={Object.values(locationsStatus)} /></div>
+                                </div>
+
+                                {/* Sensor Choropleth Map */}
+                                <div className="mx-auto mt-6 w-full max-w-6xl">
+                                    <ChoroplethMapCard
+                                        locations={Object.values(locationsStatus).map(ls => ({
+                                            ...ls,
+                                            aqi: ls.location_id === currentLocation ? (airData?.pm25 ?? 0) : 0
+                                        }))}
+                                    />
                                 </div>
                             </>
                         ) : (

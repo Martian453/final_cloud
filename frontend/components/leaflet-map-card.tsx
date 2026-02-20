@@ -57,8 +57,8 @@ function MapController({ locations }: { locations: LocationData[] }) {
             const bounds = L.latLngBounds(validLocs.map(l => [l.latitude!, l.longitude!]));
             map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
         } else {
-            // Default fallback if no locations
-            map.setView([28.6139, 77.209], 10);
+            // Fallback: No valid locations, center on Bangalore
+            map.setView([12.9716, 77.5946], 12);
         }
     }, [locations, map])
 
@@ -84,8 +84,8 @@ export function LeafletMapCard({ locations = [] }: LeafletMapCardProps) {
             </div>
 
             <MapContainer
-                center={[28.6139, 77.209]}
-                zoom={10}
+                center={[12.9716, 77.5946]}
+                zoom={12}
                 style={{ height: "100%", width: "100%" }}
                 zoomControl={false}
             >
