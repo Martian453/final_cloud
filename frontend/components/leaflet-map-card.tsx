@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import L from "leaflet"
@@ -52,10 +52,12 @@ function MapController({ locations }: { locations: LocationData[] }) {
     const map = useMap()
 
     useEffect(() => {
+        // Ensure map size is correct after dynamic import
+        map.invalidateSize();
         const validLocs = locations.filter(l => l.latitude && l.longitude);
         if (validLocs.length > 0) {
             const bounds = L.latLngBounds(validLocs.map(l => [l.latitude!, l.longitude!]));
-            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+            map.fitBounds(bounds, { padding: [80, 80], maxZoom: 14 });
         } else {
             // Fallback: No valid locations, center on Bangalore
             map.setView([12.9716, 77.5946], 12);
@@ -90,8 +92,8 @@ export function LeafletMapCard({ locations = [] }: LeafletMapCardProps) {
                 zoomControl={false}
             >
                 <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
                 {validLocations.map((loc) => (

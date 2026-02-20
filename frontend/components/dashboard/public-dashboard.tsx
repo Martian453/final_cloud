@@ -312,12 +312,7 @@ export function PublicDashboard() {
                                                         </div>
                                                         <div>
                                                             <h3 className="font-bold text-lg text-white group-hover:text-emerald-400 transition-colors">{loc.name}</h3>
-                                                            <p className="text-sm text-slate-500">
-                                                                {loc.area}
-                                                                {loc.distanceKm != null && (
-                                                                    <span className="ml-1 text-cyan-500">• {loc.distanceKm < 1 ? `${(loc.distanceKm * 1000).toFixed(0)} m` : `${loc.distanceKm.toFixed(1)} km`} away</span>
-                                                                )}
-                                                            </p>
+                                                            <p className="text-sm text-slate-500">{loc.area}</p>
                                                         </div>
                                                     </div>
                                                     <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${loc.online ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>
