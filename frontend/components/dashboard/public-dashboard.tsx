@@ -6,6 +6,7 @@ import { LogIn, MapPin, Wind, Droplets, ArrowLeft } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { AirQualityCard } from "@/components/air-quality-card"
 import { WaterQualityCard } from "@/components/water-quality-card"
+import { getApiBaseUrl } from "@/lib/api-url"
 
 // --- Status Helpers ---
 function getAqiStatus(pm25: number) {
@@ -75,7 +76,7 @@ export function PublicDashboard() {
     useEffect(() => {
         const fetchPublicData = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+                const apiUrl = getApiBaseUrl();
                 const res = await fetch(`${apiUrl}/api/public/locations`)
                 const data = await res.json()
                 if (Array.isArray(data)) {

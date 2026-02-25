@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useAuth } from "@/components/auth-provider"
+import { getApiBaseUrl } from "@/lib/api-url"
 import { X, Cpu, MapPin, Loader2 } from "lucide-react"
 
 interface RegisterDeviceModalProps {
@@ -32,8 +33,7 @@ export function RegisterDeviceModal({ isOpen, onClose, onSuccess }: RegisterDevi
 
         try {
             // Helper to get API URL
-            // Helper to get API URL
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+            const baseUrl = getApiBaseUrl()
             const apiUrl = `${baseUrl}/api/devices/register`
 
             // Construct payload matching backend RegisterDevicePayload

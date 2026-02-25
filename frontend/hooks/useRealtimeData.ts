@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { getApiBaseUrl } from "@/lib/api-url";
 
 type RealtimeData = {
     location_id: string;
@@ -39,7 +40,7 @@ export function useRealtimeData(locationId: string, token: string | null) {
         // Connect to WebSocket with Token (Dynamic Host)
         // Connect to WebSocket with Token
         // Use the Backend URL (not frontend host)
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const apiBase = getApiBaseUrl();
         const wsBase = apiBase.replace(/^http/, "ws"); // http->ws, https->wss
         const wsUrl = `${wsBase}/ws/live/${encodeURIComponent(locationId)}?token=${token}`;
         console.log(`🔌 Connecting to WS: ${wsUrl}`);

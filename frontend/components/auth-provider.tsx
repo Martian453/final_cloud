@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getApiUrl } from '@/lib/api-url';
 import { useRouter, usePathname } from 'next/navigation';
 
 interface User {
@@ -41,10 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    const getApiUrl = (path: string) => {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-        return `${baseUrl}${path}`;
-    }
+    // Uses shared getApiUrl from @/lib/api-url
 
     const fetchUser = async (authToken: string) => {
         try {

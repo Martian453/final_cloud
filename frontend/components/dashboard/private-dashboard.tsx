@@ -12,6 +12,7 @@ import { OfflineBanner } from "@/components/offline-banner"
 import dynamic from "next/dynamic"
 import { useRealtimeData } from "@/hooks/useRealtimeData"
 import { useAuth } from "@/components/auth-provider"
+import { getApiUrl } from "@/lib/api-url"
 import { Download, Wifi, WifiOff, Cpu, MapPin, Trash2 } from "lucide-react"
 
 // Dynamically import Leaflet map
@@ -91,12 +92,7 @@ export function PrivateDashboard() {
     const [isSystemOnline, setIsSystemOnline] = useState(false);
     const [locationsStatus, setLocationsStatus] = useState<Record<string, { location_id: string; online: boolean; last_seen: string | null; latitude: number | null; longitude: number | null; name: string }>>({});
 
-    // Helper for API URL
-    // Helper for API URL
-    const getApiUrl = (path: string) => {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-        return `${baseUrl}${path}`;
-    }
+    // API URL helper from shared utility
 
     useEffect(() => {
         if (!token) return;

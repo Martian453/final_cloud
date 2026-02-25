@@ -24,24 +24,13 @@ import auth
 
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 
-# CORS Setup
-origins = [
-    "http://localhost",
-    "http://localhost:3000",
-    "http://192.168.1.7",
-    "http://192.168.1.7:3000",
-    # Allow production frontend
-    os.getenv("FRONTEND_URL", ""), 
-    # Optional: Allow any Vercel preview (insecure for high security apps, fine for this)
-    # "*", 
-]
-
-# Clean empty strings
-origins = [origin for origin in origins if origin]
+# CORS Setup: Allow all origins for LAN access
+# For production, set FRONTEND_URL env var to restrict to your domain
+_frontend_url = os.getenv("FRONTEND_URL", "")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[_frontend_url] if _frontend_url else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

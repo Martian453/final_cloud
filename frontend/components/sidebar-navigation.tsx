@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider";
+import { getApiBaseUrl } from "@/lib/api-url";
 import { LayoutDashboard, X, LogOut, Cpu, Download, PlusCircle, Globe } from "lucide-react"
 import { RegisterDeviceModal } from "./dashboard/register-device-modal"
 
@@ -57,7 +58,7 @@ export function SidebarNavigation({ isOpen, onToggle, activeView, onNavigate }: 
     if (!token) return;
     try {
       // Use environment variable for API URL (works both locally and on production)
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const apiUrl = getApiBaseUrl();
       const exportUrl = `${apiUrl}/api/export/csv`;
 
       const res = await fetch(exportUrl, {
