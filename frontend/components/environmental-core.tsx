@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react"
 import * as THREE from "three"
-import { RegionGraph } from "@/components/region-graph"
 
 interface EnvironmentalCoreProps {
   aqi: number | null
@@ -89,8 +88,8 @@ function CircularGauge({
   )
 }
 
-// Semi-circular live gauge for Water status
-function WaterSemiGauge({
+// Flat semicircular speedometer gauge (matches reference image)
+function SpeedometerGauge({
   value,
   maxValue,
   status,
@@ -99,112 +98,129 @@ function WaterSemiGauge({
   maxValue: number
   status?: string
 }) {
-  const safeMax = Math.max(maxValue || 0, 12); // ensure reasonable arc span
+  const safeMax = Math.max(maxValue || 0, 12);
   const clampedValue = Math.max(0, Math.min(value, safeMax));
   const ratio = safeMax === 0 ? 0 : clampedValue / safeMax;
 
+  // 4 color-coded zones matching reference: Blue → Green → Orange → Red-Orange
   const zones = [
-    { label: "OFF", from: 0, to: 2, color: "#64748b" },      // Grey
-    { label: "LOW", from: 2, to: 4, color: "#f97316" },      // Orange
-    { label: "MID", from: 4, to: 7, color: "#eab308" },      // Yellow
-    { label: "HIGH", from: 7, to: 12, color: "#22c55e" },    // Green
-    { label: "CRITICAL", from: 12, to: safeMax, color: "#ef4444" }, // Red
+    { label: "LOW", from: 0, to: 0.25, color: "#5B9BD5" },  // Steel blue
+    { label: "MID", from: 0.25, to: 0.5, color: "#6BBF6B" },  // Green
+    { label: "HIGH", from: 0.5, to: 0.75, color: "#E8985E" },  // Orange
+    { label: "CRITICAL", from: 0.75, to: 1, color: "#D4654A" },  // Red-orange
   ];
 
-  const inferredStatus = (() => {
-    const zone = zones.find(z => clampedValue >= z.from && clampedValue < z.to) || zones[zones.length - 1];
-    return zone.label;
-  })();
+  const activeZone = zones.find(z => ratio >= z.from && ratio < z.to) || zones[zones.length - 1];
+  const activeStatus = (status || activeZone.label).toUpperCase();
 
-  const activeStatus = (status || inferredStatus).toUpperCase();
-  const activeZone = zones.find(z => z.label === activeStatus) || zones[0];
+  // Needle angle: semi-circle from 180° (left) to 0° (right)
+  const needleAngle = 180 - (ratio * 180);
 
-  const radius = 42;
-  const cx = 50;
-  const cy = 60; // slightly lower to give room for labels
+  const cx = 175, cy = 160, r = 130;
 
-  const toAngle = (fraction: number) => {
-    const f = Math.max(0, Math.min(1, fraction));
-    // Map 0..1 -> 180deg (π) .. 0deg
-    return Math.PI * (1 - f);
-  };
+  // Helper: arc path for a zone
+  function arcPath(fromRatio: number, toRatio: number) {
+    const startAngle = Math.PI - (fromRatio * Math.PI); // 180° to 0°
+    const endAngle = Math.PI - (toRatio * Math.PI);
+    const x1 = cx + r * Math.cos(startAngle);
+    const y1 = cy - r * Math.sin(startAngle);
+    const x2 = cx + r * Math.cos(endAngle);
+    const y2 = cy - r * Math.sin(endAngle);
+    const sweep = (toRatio - fromRatio) > 0.5 ? 1 : 0;
+    return `M ${x1} ${y1} A ${r} ${r} 0 ${sweep} 1 ${x2} ${y2}`;
+  }
 
-  const arcPath = (fromVal: number, toVal: number) => {
-    const startRatio = Math.max(0, Math.min(1, fromVal / safeMax));
-    const endRatio = Math.max(0, Math.min(1, toVal / safeMax));
-    const startAngle = toAngle(startRatio);
-    const endAngle = toAngle(endRatio);
-
-    const x1 = cx + radius * Math.cos(startAngle);
-    const y1 = cy + radius * Math.sin(startAngle);
-    const x2 = cx + radius * Math.cos(endAngle);
-    const y2 = cy + radius * Math.sin(endAngle);
-    const largeArc = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
-
-    return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 0 ${x2} ${y2}`;
-  };
-
-  const knobAngle = toAngle(ratio);
-  const knobX = cx + radius * Math.cos(knobAngle);
-  const knobY = cy + radius * Math.sin(knobAngle);
+  // Needle tip position
+  const needleRad = (needleAngle * Math.PI) / 180;
+  const needleLen = 100;
+  const nx = cx + needleLen * Math.cos(needleRad);
+  const ny = cy - needleLen * Math.sin(needleRad);
 
   return (
-    <div className="relative h-32 w-40">
-      <svg viewBox="0 0 100 80" className="h-full w-full">
+    <div className="relative h-48 w-full max-w-sm flex items-center justify-center">
+      <svg viewBox="0 0 350 190" className="h-full w-full">
         {/* Background arc */}
         <path
-          d={arcPath(0, safeMax)}
+          d={arcPath(0, 1)}
           fill="none"
-          stroke="rgba(148,163,184,0.2)"
-          strokeWidth={8}
-          strokeLinecap="round"
+          stroke="rgba(30,41,59,0.6)"
+          strokeWidth="38"
+          strokeLinecap="butt"
         />
 
-        {/* Colored zones */}
-        {zones.map((z, idx) => (
+        {/* Colored zone arcs — flat, thick, with dark separators */}
+        {zones.map((z) => (
           <path
             key={z.label}
             d={arcPath(z.from, z.to)}
             fill="none"
             stroke={z.color}
-            strokeWidth={idx === zones.length - 1 ? 7 : 6}
-            strokeLinecap="round"
-            opacity={activeStatus === z.label ? 1 : 0.4}
-            style={{ filter: activeStatus === z.label ? `drop-shadow(0 0 6px ${z.color})` : "none" }}
+            strokeWidth="34"
+            strokeLinecap="butt"
+            opacity={activeStatus === z.label ? 1 : 0.7}
+            style={{ transition: "opacity 0.4s ease" }}
           />
         ))}
 
-        {/* Live knob */}
-        <circle cx={knobX} cy={knobY} r={4} fill={activeZone.color} />
-        <circle cx={knobX} cy={knobY} r={7} fill="none" stroke={activeZone.color} strokeWidth={1.5} opacity={0.6} />
+        {/* Dark separator lines between zones */}
+        {[0.25, 0.5, 0.75].map((tick) => {
+          const angle = Math.PI - (tick * Math.PI);
+          const x1 = cx + (r - 20) * Math.cos(angle);
+          const y1 = cy - (r - 20) * Math.sin(angle);
+          const x2 = cx + (r + 20) * Math.cos(angle);
+          const y2 = cy - (r + 20) * Math.sin(angle);
+          return (
+            <line
+              key={tick}
+              x1={x1} y1={y1} x2={x2} y2={y2}
+              stroke="#0f172a"
+              strokeWidth="4"
+            />
+          );
+        })}
 
-        {/* Center label */}
-        <text
-          x="50"
-          y="40"
-          textAnchor="middle"
-          className="text-[10px] font-medium uppercase tracking-wider"
-          fill="#facc15"
-        >
-          Water Level
-        </text>
-        <text
-          x="50"
-          y="50"
-          textAnchor="middle"
-          className="text-sm font-bold"
-          fill="#e5e7eb"
-        >
+        {/* Outer border arc */}
+        <path
+          d={arcPath(0, 1)}
+          fill="none"
+          stroke="#1e293b"
+          strokeWidth="3"
+          strokeLinecap="round"
+          style={{ transform: `translate(0, 0)` }}
+        />
+
+        {/* Needle — pointed triangle */}
+        <line
+          x1={cx} y1={cy}
+          x2={nx} y2={ny}
+          stroke="#1e293b"
+          strokeWidth="7"
+          strokeLinecap="round"
+        />
+        <line
+          x1={cx} y1={cy}
+          x2={nx} y2={ny}
+          stroke="#0f172a"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+
+        {/* Center hub */}
+        <circle cx={cx} cy={cy} r="16" fill="#1e293b" stroke="#334155" strokeWidth="3" />
+        <circle cx={cx} cy={cy} r="9" fill="#334155" />
+
+        {/* Zone labels */}
+        <text x="60" y="175" textAnchor="start" className="text-[11px] font-bold" fill="#5B9BD5">LOW</text>
+        <text x="125" y="60" textAnchor="middle" className="text-[11px] font-bold" fill="#6BBF6B">MID</text>
+        <text x="225" y="60" textAnchor="middle" className="text-[11px] font-bold" fill="#E8985E">HIGH</text>
+        <text x="290" y="175" textAnchor="end" className="text-[11px] font-bold" fill="#D4654A">CRITICAL</text>
+
+        {/* Value display */}
+        <text x={cx} y="130" textAnchor="middle" className="text-[18px] font-bold" fill="#f1f5f9">
           {clampedValue.toFixed(1)} ft
         </text>
-        <text
-          x="50"
-          y="60"
-          textAnchor="middle"
-          className="text-[9px] font-semibold"
-          fill={activeZone.color}
-        >
-          {activeStatus}
+        <text x={cx} y="148" textAnchor="middle" className="text-[11px] font-medium" fill="#94a3b8">
+          Water Level
         </text>
       </svg>
     </div>
@@ -271,7 +287,7 @@ export function EnvironmentalCore({
     container.appendChild(renderer.domElement)
 
     // Create wireframe sphere (like a globe with lat/long lines)
-    const sphereRadius = 1.4
+    const sphereRadius = 2.0
 
     // Main glowing core (inner)
     const coreGeometry = new THREE.SphereGeometry(sphereRadius * 0.95, 64, 64)
@@ -562,13 +578,20 @@ export function EnvironmentalCore({
             segments={pm25Segments}
           />
           <div className="flex flex-col items-center gap-1">
-            <WaterSemiGauge
-              value={Number.isFinite(currentWaterLevel) ? Number(currentWaterLevel.toFixed(2)) : 0}
-              maxValue={Number.isFinite(maxWaterLevel) ? Number(maxWaterLevel.toFixed(2)) : 0}
-              status={waterStatus}
+            <CircularGauge
+              label="Water"
+              value={Number.isFinite(currentWaterLevel) ? Number(currentWaterLevel.toFixed(1)) : 0}
+              unit="ft"
+              segments={[
+                { color: "#64748b", percent: 15 },
+                { color: "#f97316", percent: 20 },
+                { color: "#eab308", percent: 25 },
+                { color: "#22c55e", percent: 30 },
+                { color: "#ef4444", percent: 10 },
+              ]}
             />
             <span className="text-[10px] text-slate-400">
-              highest recorded: {Number.isFinite(maxWaterLevel) ? maxWaterLevel.toFixed(1) : "0.0"} ft
+              highest: {Number.isFinite(maxWaterLevel) ? maxWaterLevel.toFixed(1) : "0.0"} ft
             </span>
           </div>
         </div>
@@ -576,7 +599,7 @@ export function EnvironmentalCore({
 
       {/* Bottom info */}
       <div className="relative z-10 mt-4 w-full">
-        <div className="text-center">
+        <div className="text-center mb-3">
           <h3 className="text-sm font-medium uppercase tracking-widest text-slate-300">
             Last Recorded AQI Mix
           </h3>
@@ -589,8 +612,14 @@ export function EnvironmentalCore({
           </p>
         </div>
 
-        {/* Region graph under core */}
-        <RegionGraph />
+        {/* Speedometer Gauge - Replacing RegionGraph */}
+        <div className="flex flex-col items-center gap-2">
+          <SpeedometerGauge
+            value={Number.isFinite(currentWaterLevel) ? Number(currentWaterLevel.toFixed(2)) : 0}
+            maxValue={Number.isFinite(maxWaterLevel) ? Number(maxWaterLevel.toFixed(2)) : 0}
+            status={waterStatus}
+          />
+        </div>
       </div>
 
       {/* Animated border */}

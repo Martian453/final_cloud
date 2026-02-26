@@ -64,7 +64,7 @@ export function PollutantDonutChart({ airData }: PollutantDonutChartProps) {
     }
 
     return (
-        <div className="card-vibrant h-full w-full flex flex-col p-4 bg-slate-900/40 rounded-2xl border border-cyan-500/20 backdrop-blur-sm relative overflow-hidden">
+        <div className="card-vibrant h-full w-full flex flex-col p-3 bg-slate-900/40 rounded-2xl border border-cyan-500/20 backdrop-blur-sm relative overflow-hidden">
             {/* Background Glow */}
             <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full blur-[80px] bg-cyan-500/10 pointer-events-none" />
 
@@ -84,10 +84,10 @@ export function PollutantDonutChart({ airData }: PollutantDonutChartProps) {
                 )}
             </div>
 
-            <div className="flex-1 w-full relative min-h-[160px] z-10">
+            <div className="flex-1 w-full relative min-h-[120px] z-10">
                 {/* Center Text */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
-                    <span className="text-3xl font-bold text-white drop-shadow-md">
+                    <span className="text-2xl font-bold text-white drop-shadow-md">
                         {activeItem.value}
                     </span>
                     <span className="text-[10px] uppercase font-bold tracking-wider" style={{ color: activeItem.color }}>
@@ -105,8 +105,8 @@ export function PollutantDonutChart({ airData }: PollutantDonutChartProps) {
                     <PieChart>
                         <Pie
                             data={data}
-                            innerRadius={55}
-                            outerRadius={75}
+                            innerRadius={50}
+                            outerRadius={70}
                             paddingAngle={4}
                             dataKey="value"
                             onMouseEnter={onPieEnter}
@@ -134,7 +134,7 @@ export function PollutantDonutChart({ airData }: PollutantDonutChartProps) {
                 </ResponsiveContainer>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-2 mt-2 relative z-10">
+            <div className="flex flex-wrap justify-center gap-1.5 mt-1 relative z-10">
                 {data.slice(0, 4).map((entry, index) => (
                     <div
                         key={index}

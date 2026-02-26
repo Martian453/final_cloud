@@ -12,9 +12,10 @@ import {
   Title,
   Tooltip,
   Legend,
+  Filler,
 } from "chart.js"
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend)
+ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend, Filler)
 
 interface WaterQualityData {
   level: number
@@ -47,7 +48,6 @@ export function WaterQualityCard({ data, activeMetric, onMetricSelect, onExpand,
     turbidity: 0,
   })
 
-  // ... (Keep existing useEffects for animation) ...
   useEffect(() => {
     setIsVisible(true)
   }, [])
@@ -75,23 +75,20 @@ export function WaterQualityCard({ data, activeMetric, onMetricSelect, onExpand,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.level, data.ph, data.turbidity])
 
-  // Chart Data Preparation
+  // ==========================================
+  // STATIC BAR CHART PREPARATION (OLD STYLE)
+  // ==========================================
   const allLabels = ["Ground Water Level", "pH Level", "Turbidity"]
   const allLineData = [animatedValues.level, animatedValues.ph, animatedValues.turbidity]
   const allBarData = [animatedValues.level, animatedValues.ph, animatedValues.turbidity]
 
-  // Filter based on activeMetric
-  // User requested "highlight" behavior, meaning Show All but emphasize the selected one.
-  // Actually, previous request was "hiding". Current request says "bar graph is gone only showing one".
-  // So we should SHOW ALL bars always, but dim the ones that are not active.
-
-  const chartData = {
-    labels: allLabels, // Always show all labels
+  const barChartData = {
+    labels: allLabels,
     datasets: [
       {
         type: 'line' as const,
         label: 'Trend',
-        data: allLineData, // Always show all data points
+        data: allLineData,
         borderColor: "rgba(143, 211, 255, 0.5)",
         borderWidth: 2,
         tension: 0.4,
@@ -108,11 +105,11 @@ export function WaterQualityCard({ data, activeMetric, onMetricSelect, onExpand,
       {
         type: 'bar' as const,
         label: 'Value',
-        data: allBarData, // Always show all bars
+        data: allBarData,
         backgroundColor: [
-          (activeMetric === null || activeMetric === "level" || hoveredMetric === "level") ? "rgba(6, 182, 212, 1)" : "rgba(6, 182, 212, 0.1)", // Level
-          (activeMetric === null || activeMetric === "ph" || hoveredMetric === "ph") ? "rgba(34, 197, 94, 1)" : "rgba(34, 197, 94, 0.1)", // pH
-          (activeMetric === null || activeMetric === "turbidity" || hoveredMetric === "turbidity") ? "rgba(251, 191, 36, 1)" : "rgba(251, 191, 36, 0.1)", // Turbidity
+          (activeMetric === null || activeMetric === "level" || hoveredMetric === "level") ? "rgba(6, 182, 212, 1)" : "rgba(6, 182, 212, 0.1)",
+          (activeMetric === null || activeMetric === "ph" || hoveredMetric === "ph") ? "rgba(34, 197, 94, 1)" : "rgba(34, 197, 94, 0.1)",
+          (activeMetric === null || activeMetric === "turbidity" || hoveredMetric === "turbidity") ? "rgba(251, 191, 36, 1)" : "rgba(251, 191, 36, 0.1)",
         ],
         borderRadius: 8,
         barThickness: 50,
@@ -121,7 +118,7 @@ export function WaterQualityCard({ data, activeMetric, onMetricSelect, onExpand,
     ]
   }
 
-  const chartOptions = {
+  const barChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -155,6 +152,80 @@ export function WaterQualityCard({ data, activeMetric, onMetricSelect, onExpand,
       duration: 750,
       easing: "easeInOutQuart" as const,
     }
+  }
+
+  // ==========================================
+  // LIVE TIME-SERIES CHART PREPARATION
+  // ==========================================
+  // Determine which metric to show on the live chart
+  const chartMetric = activeMetric || "level"
+  const metricConfig: Record<string, { label: string; color: string; bgColor: string; unit: string }> = {
+    level: { label: "Water Level", color: "rgb(34, 211, 238)", bgColor: "rgba(34, 211, 238, 0.1)", unit: "ft" },
+    ph: { label: "pH Level", color: "rgb(74, 222, 128)", bgColor: "rgba(74, 222, 128, 0.1)", unit: "" },
+    turbidity: { label: "Turbidity", color: "rgb(251, 191, 36)", bgColor: "rgba(251, 191, 36, 0.1)", unit: "NTU" },
+  }
+  const cfg = metricConfig[chartMetric] || metricConfig.level
+
+  // Convert ISO labels to local time
+  const timeLabels = (data.chartData?.labels || []).map((l) => {
+    try {
+      return new Date(l).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    } catch {
+      return l
+    }
+  })
+
+  const chartValues = (data.chartData as any)?.[chartMetric] || []
+
+  const liveChartData = {
+    labels: timeLabels,
+    datasets: [
+      {
+        label: cfg.label,
+        data: chartValues,
+        borderColor: cfg.color,
+        backgroundColor: cfg.bgColor,
+        borderWidth: 2,
+        tension: 0.4,
+        fill: true,
+        pointRadius: 0, // hide dots by default
+        pointHoverRadius: 5,
+        pointBackgroundColor: cfg.color,
+        pointBorderColor: "#0f172a",
+        pointBorderWidth: 1,
+      },
+    ],
+  }
+
+  const liveChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "rgba(2, 6, 23, 0.9)",
+        titleColor: "#94a3b8",
+        bodyColor: "#f1f5f9",
+        borderColor: "rgba(148, 163, 184, 0.1)",
+        borderWidth: 1,
+        padding: 8,
+        displayColors: false,
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: "#475569", font: { size: 9 }, maxTicksLimit: 6 },
+        grid: { display: false },
+        border: { display: false },
+      },
+      y: {
+        ticks: { color: "#475569", font: { size: 9 } },
+        beginAtZero: true,
+        grid: { color: "rgba(148, 163, 184, 0.05)" },
+        border: { display: false },
+      },
+    },
+    animation: { duration: 500 },
   }
 
   const metrics = [
@@ -256,8 +327,8 @@ export function WaterQualityCard({ data, activeMetric, onMetricSelect, onExpand,
         ))}
       </div>
 
-      {/* Chart Section */}
-      <div className="relative z-10 mb-4 flex-1 flex flex-col">
+      {/* Bar Chart Section */}
+      <div className="relative z-10 mb-4 flex-1 flex flex-col min-h-[140px]">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs font-medium uppercase tracking-widest text-slate-400">
             Water Quality
@@ -274,11 +345,22 @@ export function WaterQualityCard({ data, activeMetric, onMetricSelect, onExpand,
             </button>
           )}
         </div>
-        <div className="h-[180px]">
-          <Chart type="bar" data={chartData} options={chartOptions as any} />
+        <div className="flex-1">
+          <Chart type="bar" data={barChartData} options={barChartOptions as any} />
         </div>
       </div>
 
+      {/* Embedded Live Time-Series Chart */}
+      <div className="relative z-10 mt-4 border-t border-white/5 pt-4 flex-1 flex flex-col min-h-[140px]">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-[10px] font-medium uppercase tracking-widest text-slate-400">
+            Live {cfg.label}
+          </h3>
+        </div>
+        <div className="flex-1 min-h-[120px]">
+          <Chart type="line" data={liveChartData} options={liveChartOptions as any} />
+        </div>
+      </div>
 
       {/* Animated border */}
       <div className="pointer-events-none absolute inset-0 rounded-2xl border border-cyan-500/10 transition-colors duration-300 group-hover:border-cyan-500/30" />
