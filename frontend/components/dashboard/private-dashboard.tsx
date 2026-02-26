@@ -508,7 +508,7 @@ export function PrivateDashboard() {
                         {activeView === "dashboard" ? (
                             <>
                                 {/* Top Row - Water Quality | Environmental Core | Air Quality */}
-                                <div className="grid h-full grid-cols-1 gap-6 lg:grid-cols-[1fr_1.5fr_1fr] lg:gap-8 mb-10">
+                                <div className="grid h-full grid-cols-1 gap-6 lg:grid-cols-[1.03fr_1.44fr_1.03fr] lg:gap-8 mb-10">
                                     {/* Col 1 - Water Quality */}
                                     {capabilities.has_water && (
                                         <div className="h-[850px] transition-all duration-500">
@@ -522,7 +522,7 @@ export function PrivateDashboard() {
                                         </div>
                                     )}
                                     {/* Col 2 - Environmental Core */}
-                                    <div className="relative h-[850px] w-full">
+                                    <div className="relative h-[875px] w-full">
                                         <EnvironmentalCore
                                             aqi={airData?.pm25 ?? 0}
                                             lastUpdate={lastMessageTime ? new Date(lastMessageTime).toLocaleTimeString() : "--:--"}

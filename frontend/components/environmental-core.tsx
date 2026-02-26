@@ -102,12 +102,12 @@ function SpeedometerGauge({
   const clampedValue = Math.max(0, Math.min(value, safeMax));
   const ratio = safeMax === 0 ? 0 : clampedValue / safeMax;
 
-  // 4 color-coded zones matching reference: Blue → Green → Orange → Red-Orange
+  // 4 color-coded zones: Left→Right = CRITICAL → LOW → MID → HIGH
   const zones = [
-    { label: "LOW", from: 0, to: 0.25, color: "#5B9BD5" },  // Steel blue
-    { label: "MID", from: 0.25, to: 0.5, color: "#6BBF6B" },  // Green
-    { label: "HIGH", from: 0.5, to: 0.75, color: "#E8985E" },  // Orange
-    { label: "CRITICAL", from: 0.75, to: 1, color: "#D4654A" },  // Red-orange
+    { label: "CRITICAL", from: 0, to: 0.25, color: "#dc2626" },   // Vibrant Red
+    { label: "LOW", from: 0.25, to: 0.5, color: "#f97316" }, // Warm Orange
+    { label: "MID", from: 0.5, to: 0.75, color: "#3b82f6" }, // Bright Blue
+    { label: "HIGH", from: 0.75, to: 1, color: "#22c55e" },   // Vivid Green
   ];
 
   const activeZone = zones.find(z => ratio >= z.from && ratio < z.to) || zones[zones.length - 1];
@@ -137,8 +137,24 @@ function SpeedometerGauge({
   const ny = cy - needleLen * Math.sin(needleRad);
 
   return (
-    <div className="relative h-48 w-full max-w-sm flex items-center justify-center">
-      <svg viewBox="0 0 350 190" className="h-full w-full">
+    <div className="relative h-60 w-full max-w-sm flex items-center justify-center">
+      <svg viewBox="0 0 360 210" className="h-full w-full">
+        {/* Glow filters for each zone */}
+        <defs>
+          {zones.map((z) => (
+            <filter key={z.label} id={`glow-${z.label}`} x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="6" result="blur" />
+              <feFlood floodColor={z.color} floodOpacity="0.6" result="color" />
+              <feComposite in="color" in2="blur" operator="in" result="shadow" />
+              <feMerge>
+                <feMergeNode in="shadow" />
+                <feMergeNode in="shadow" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          ))}
+        </defs>
+
         {/* Background arc */}
         <path
           d={arcPath(0, 1)}
@@ -148,7 +164,7 @@ function SpeedometerGauge({
           strokeLinecap="butt"
         />
 
-        {/* Colored zone arcs — flat, thick, with dark separators */}
+        {/* Colored zone arcs — flat, thick, with glow on active */}
         {zones.map((z) => (
           <path
             key={z.label}
@@ -157,8 +173,9 @@ function SpeedometerGauge({
             stroke={z.color}
             strokeWidth="34"
             strokeLinecap="butt"
-            opacity={activeStatus === z.label ? 1 : 0.7}
-            style={{ transition: "opacity 0.4s ease" }}
+            opacity={activeStatus === z.label ? 1 : 0.5}
+            filter={activeStatus === z.label ? `url(#glow-${z.label})` : undefined}
+            style={{ transition: "opacity 0.4s ease, filter 0.4s ease" }}
           />
         ))}
 
@@ -209,17 +226,17 @@ function SpeedometerGauge({
         <circle cx={cx} cy={cy} r="16" fill="#1e293b" stroke="#334155" strokeWidth="3" />
         <circle cx={cx} cy={cy} r="9" fill="#334155" />
 
-        {/* Zone labels */}
-        <text x="60" y="175" textAnchor="start" className="text-[11px] font-bold" fill="#5B9BD5">LOW</text>
-        <text x="125" y="60" textAnchor="middle" className="text-[11px] font-bold" fill="#6BBF6B">MID</text>
-        <text x="225" y="60" textAnchor="middle" className="text-[11px] font-bold" fill="#E8985E">HIGH</text>
-        <text x="290" y="175" textAnchor="end" className="text-[11px] font-bold" fill="#D4654A">CRITICAL</text>
+        {/* Zone labels — Left to Right: CRITICAL → LOW → MID → HIGH */}
+        <text x="40" y="175" textAnchor="start" className="text-[11px] font-bold" fill="#dc2626">CRITICAL</text>
+        <text x="130" y="70" textAnchor="middle" className="text-[11px] font-bold" fill="#f97316">LOW</text>
+        <text x="220" y="70" textAnchor="middle" className="text-[11px] font-bold" fill="#3b82f6">MID</text>
+        <text x="310" y="175" textAnchor="end" className="text-[11px] font-bold" fill="#22c55e">HIGH</text>
 
         {/* Value display */}
-        <text x={cx} y="130" textAnchor="middle" className="text-[18px] font-bold" fill="#f1f5f9">
+        <text x={cx} y="110" textAnchor="middle" className="text-[19px] font-bold" fill="#f1f5f9">
           {clampedValue.toFixed(1)} ft
         </text>
-        <text x={cx} y="148" textAnchor="middle" className="text-[11px] font-medium" fill="#94a3b8">
+        <text x={cx} y="125" textAnchor="middle" className="text-[12px] font-medium" fill="#94a3b8">
           Water Level
         </text>
       </svg>
@@ -287,7 +304,7 @@ export function EnvironmentalCore({
     container.appendChild(renderer.domElement)
 
     // Create wireframe sphere (like a globe with lat/long lines)
-    const sphereRadius = 2.0
+    const sphereRadius = 1.4
 
     // Main glowing core (inner)
     const coreGeometry = new THREE.SphereGeometry(sphereRadius * 0.95, 64, 64)
@@ -550,7 +567,7 @@ export function EnvironmentalCore({
   ]
 
   return (
-    <div className="card-vibrant card-core relative flex flex-col items-center justify-center overflow-visible min-h-[560px]">
+    <div className="card-vibrant card-core relative flex h-full flex-col items-center justify-start overflow-visible">
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden rounded-2xl">
         <div className="absolute -left-1/4 -top-1/4 h-1/2 w-1/2 animate-blob rounded-full bg-emerald-500/20 blur-3xl" />
@@ -583,11 +600,11 @@ export function EnvironmentalCore({
               value={Number.isFinite(currentWaterLevel) ? Number(currentWaterLevel.toFixed(1)) : 0}
               unit="ft"
               segments={[
-                { color: "#64748b", percent: 15 },
-                { color: "#f97316", percent: 20 },
-                { color: "#eab308", percent: 25 },
-                { color: "#22c55e", percent: 30 },
-                { color: "#ef4444", percent: 10 },
+                { color: "#22c55e", percent: 33, label: "33%" },
+                { color: "#84cc16", percent: 37, label: "37%" },
+                { color: "#fbbf24", percent: 8 },
+                { color: "#f97316", percent: 7, label: "7%" },
+                { color: "#ef4444", percent: 88 },
               ]}
             />
             <span className="text-[10px] text-slate-400">
@@ -598,8 +615,8 @@ export function EnvironmentalCore({
       </div>
 
       {/* Bottom info */}
-      <div className="relative z-10 mt-4 w-full">
-        <div className="text-center mb-3">
+      <div className="relative z-10 mt-0.5 w-full pb-4">
+        <div className="text-center mb-18">
           <h3 className="text-sm font-medium uppercase tracking-widest text-slate-300">
             Last Recorded AQI Mix
           </h3>
