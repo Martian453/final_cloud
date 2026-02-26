@@ -39,9 +39,8 @@ export function ChoroplethMapCard({ locations = [] }: ChoroplethMapCardProps) {
     )
   }, [])
 
-  const validLocs = locations.filter(
-    l => typeof l.latitude === "number" && typeof l.longitude === "number"
-  )
+  // Show all registered sensors, even if latitude/longitude are missing.
+  const validLocs = locations
 
   return (
     <div className="relative mt-6 rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-slate-950/70 via-slate-900/60 to-slate-950/80 p-6">

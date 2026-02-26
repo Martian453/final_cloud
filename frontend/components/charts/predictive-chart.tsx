@@ -19,7 +19,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 interface PredictiveChartProps {
     data?: {
         labels: string[]
-        pm25: number[]
+        level: number[]
     }
 }
 
@@ -27,81 +27,28 @@ export function PredictiveChart({ data: historicalData }: PredictiveChartProps) 
     const [chartData, setChartData] = useState<any>(null)
 
     useEffect(() => {
-        if (!historicalData || historicalData.pm25.length < 2) {
-            // Fallback or empty state if not enough data
-            // keeping dummy for "No Data" state could be misleading, better to show flat line or empty?
-            // Let's show a loading or "Waiting for data" state if empty.
-            // For now, let's just return if no data to avoid crash.
+        if (!historicalData || historicalData.level.length === 0 || historicalData.labels.length === 0) {
+            setChartData(null);
             return;
         }
 
-        // 1. Get last N points (e.g. last 10 points)
-        const nStream = 10;
-        const recentValues = historicalData.pm25.slice(-nStream);
-
-        // 2. Simple Linear Regression (y = mx + b)
-        // x = 0, 1, 2... 
-        const n = recentValues.length;
-        let sumX = 0;
-        let sumY = 0;
-        let sumXY = 0;
-        let sumXX = 0;
-
-        for (let i = 0; i < n; i++) {
-            sumX += i;
-            sumY += recentValues[i];
-            sumXY += (i * recentValues[i]);
-            sumXX += (i * i);
-        }
-
-        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-        const intercept = (sumY - slope * sumX) / n;
-
-        // 3. Project Future (Next 12 Hours)
-        // The last actual point is at x = n-1.
-        // Future points start at x = n, n+1...
-        const futureLabels = [];
-        const futureValues = [];
-
-        const lastTimeStr = historicalData.labels[historicalData.labels.length - 1] || new Date().toLocaleTimeString();
-        // Naive time increment (assuming 1 hour intervals or just labels)
-        // Let's just generate next hours from "Now"
-        const now = new Date();
-
-        for (let i = 0; i < 12; i++) {
-            const nextTime = new Date(now.getTime() + (i + 1) * 60 * 60 * 1000);
-            futureLabels.push(nextTime.toLocaleTimeString('en-US', { hour: '2-digit', hour12: true }));
-
-            // Forecast value: y = mx + b (where x extends beyond n)
-            // recentValues indices: 0 to n-1
-            // Future indices: n + i
-            let val = slope * (n + i) + intercept;
-
-            // Dampen extreme slopes for realism (simple clamp or decay)
-            // Ensure non-negative
-            val = Math.max(0, val);
-
-            // Add a tiny bit of "uncertainty" noise
-            val += (Math.random() - 0.5) * 5;
-
-            futureValues.push(val);
-        }
+        const trimmedLevels = historicalData.level.slice(-100);
+        const trimmedLabels = historicalData.labels.slice(-100);
 
         setChartData({
-            labels: futureLabels,
+            labels: trimmedLabels,
             datasets: [
                 {
-                    label: 'AQI Forecast (Trend)',
-                    data: futureValues,
-                    borderColor: 'rgba(124, 255, 154, 0.8)', // Greenish
-                    backgroundColor: 'rgba(124, 255, 154, 0.1)',
+                    label: 'Water Level (ft)',
+                    data: trimmedLevels,
+                    borderColor: 'rgba(56, 189, 248, 0.9)', // cyan-400
+                    backgroundColor: 'rgba(56, 189, 248, 0.15)',
                     borderWidth: 2,
-                    borderDash: [5, 5], // Dotted Line
                     tension: 0.4,
                     fill: true,
-                    pointRadius: 3,
-                    pointHoverRadius: 5,
-                    pointBackgroundColor: 'rgba(124, 255, 154, 1)',
+                    pointRadius: 2,
+                    pointHoverRadius: 4,
+                    pointBackgroundColor: 'rgba(56, 189, 248, 1)',
                 }
             ],
         })
@@ -124,6 +71,13 @@ export function PredictiveChart({ data: historicalData }: PredictiveChartProps) 
                 bodyColor: '#e2e8f0',
                 borderColor: 'rgba(148, 163, 184, 0.1)',
                 borderWidth: 1,
+                callbacks: {
+                    label: (ctx: any) => {
+                        const v = ctx.parsed.y;
+                        if (typeof v === "number") return `Water level: ${v.toFixed(2)} ft`;
+                        return 'Water level';
+                    }
+                }
             },
         },
         scales: {
@@ -157,13 +111,13 @@ export function PredictiveChart({ data: historicalData }: PredictiveChartProps) 
             <div className="mb-4 flex items-center justify-between">
                 <div>
                     <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
-                        Predictive Analysis
+                        Water Level (Live)
                     </h3>
-                    <p className="text-[10px] text-slate-500">12H Trend Forecast (Linear Regression)</p>
+                    <p className="text-[10px] text-slate-500">Last 100 samples from water sensor</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[10px] font-mono text-emerald-400">LIVE MODEL</span>
+                    <span className="text-[10px] font-mono text-emerald-400">REAL-TIME FEED</span>
                 </div>
             </div>
 

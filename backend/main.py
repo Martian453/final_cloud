@@ -53,11 +53,12 @@ class RegisterDevicePayload(BaseModel):
     location_id: Optional[str] = None # Allow manual ID if needed (backward compat)
 
 # Pydantic Model for Ingestion
+# NOTE: data can contain both numeric readings and string flags (e.g. status="MID")
 class IngestPayload(BaseModel):
     device_id: str
-    type: str  # 'aqi' or 'water'
+    type: str  # 'aqi' or 'water' or extended values like 'water_sensor'
     timestamp: Optional[str] = None
-    data: Dict[str, float]
+    data: Dict[str, Any]
 
 @app.on_event("startup")
 def on_startup():
@@ -220,6 +221,9 @@ async def ingest_data(payload: IngestPayload, session: Session = Depends(get_ses
                 pass
 
         for key, val in payload.data.items():
+            # Only persist numeric readings; ignore flags like "status"
+            if not isinstance(val, (int, float)):
+                continue
             meas = Measurement(
                 location_id=loc.id,
                 device_id=payload.device_id,

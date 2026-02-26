@@ -11,6 +11,7 @@ interface EnvironmentalCoreProps {
   currentPm25?: number
   maxWaterLevel?: number
   currentWaterLevel?: number
+  waterStatus?: string
   isOffline?: boolean
 }
 
@@ -88,6 +89,128 @@ function CircularGauge({
   )
 }
 
+// Semi-circular live gauge for Water status
+function WaterSemiGauge({
+  value,
+  maxValue,
+  status,
+}: {
+  value: number
+  maxValue: number
+  status?: string
+}) {
+  const safeMax = Math.max(maxValue || 0, 12); // ensure reasonable arc span
+  const clampedValue = Math.max(0, Math.min(value, safeMax));
+  const ratio = safeMax === 0 ? 0 : clampedValue / safeMax;
+
+  const zones = [
+    { label: "OFF", from: 0, to: 2, color: "#64748b" },      // Grey
+    { label: "LOW", from: 2, to: 4, color: "#f97316" },      // Orange
+    { label: "MID", from: 4, to: 7, color: "#eab308" },      // Yellow
+    { label: "HIGH", from: 7, to: 12, color: "#22c55e" },    // Green
+    { label: "CRITICAL", from: 12, to: safeMax, color: "#ef4444" }, // Red
+  ];
+
+  const inferredStatus = (() => {
+    const zone = zones.find(z => clampedValue >= z.from && clampedValue < z.to) || zones[zones.length - 1];
+    return zone.label;
+  })();
+
+  const activeStatus = (status || inferredStatus).toUpperCase();
+  const activeZone = zones.find(z => z.label === activeStatus) || zones[0];
+
+  const radius = 42;
+  const cx = 50;
+  const cy = 60; // slightly lower to give room for labels
+
+  const toAngle = (fraction: number) => {
+    const f = Math.max(0, Math.min(1, fraction));
+    // Map 0..1 -> 180deg (π) .. 0deg
+    return Math.PI * (1 - f);
+  };
+
+  const arcPath = (fromVal: number, toVal: number) => {
+    const startRatio = Math.max(0, Math.min(1, fromVal / safeMax));
+    const endRatio = Math.max(0, Math.min(1, toVal / safeMax));
+    const startAngle = toAngle(startRatio);
+    const endAngle = toAngle(endRatio);
+
+    const x1 = cx + radius * Math.cos(startAngle);
+    const y1 = cy + radius * Math.sin(startAngle);
+    const x2 = cx + radius * Math.cos(endAngle);
+    const y2 = cy + radius * Math.sin(endAngle);
+    const largeArc = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
+
+    return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 0 ${x2} ${y2}`;
+  };
+
+  const knobAngle = toAngle(ratio);
+  const knobX = cx + radius * Math.cos(knobAngle);
+  const knobY = cy + radius * Math.sin(knobAngle);
+
+  return (
+    <div className="relative h-32 w-40">
+      <svg viewBox="0 0 100 80" className="h-full w-full">
+        {/* Background arc */}
+        <path
+          d={arcPath(0, safeMax)}
+          fill="none"
+          stroke="rgba(148,163,184,0.2)"
+          strokeWidth={8}
+          strokeLinecap="round"
+        />
+
+        {/* Colored zones */}
+        {zones.map((z, idx) => (
+          <path
+            key={z.label}
+            d={arcPath(z.from, z.to)}
+            fill="none"
+            stroke={z.color}
+            strokeWidth={idx === zones.length - 1 ? 7 : 6}
+            strokeLinecap="round"
+            opacity={activeStatus === z.label ? 1 : 0.4}
+            style={{ filter: activeStatus === z.label ? `drop-shadow(0 0 6px ${z.color})` : "none" }}
+          />
+        ))}
+
+        {/* Live knob */}
+        <circle cx={knobX} cy={knobY} r={4} fill={activeZone.color} />
+        <circle cx={knobX} cy={knobY} r={7} fill="none" stroke={activeZone.color} strokeWidth={1.5} opacity={0.6} />
+
+        {/* Center label */}
+        <text
+          x="50"
+          y="40"
+          textAnchor="middle"
+          className="text-[10px] font-medium uppercase tracking-wider"
+          fill="#facc15"
+        >
+          Water Level
+        </text>
+        <text
+          x="50"
+          y="50"
+          textAnchor="middle"
+          className="text-sm font-bold"
+          fill="#e5e7eb"
+        >
+          {clampedValue.toFixed(1)} ft
+        </text>
+        <text
+          x="50"
+          y="60"
+          textAnchor="middle"
+          className="text-[9px] font-semibold"
+          fill={activeZone.color}
+        >
+          {activeStatus}
+        </text>
+      </svg>
+    </div>
+  );
+}
+
 export function EnvironmentalCore({
   aqi,
   lastUpdate,
@@ -95,6 +218,7 @@ export function EnvironmentalCore({
   currentPm25 = 0,
   maxWaterLevel = 0,
   currentWaterLevel = 0,
+  waterStatus,
   isOffline = false,
 }: EnvironmentalCoreProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -409,15 +533,6 @@ export function EnvironmentalCore({
     { color: "#ef4444", percent: 2, label: "2%" },
   ]
 
-  // Water level gauge segments
-  const waterSegments = [
-    { color: "#22c55e", percent: 33, label: "33%" },
-    { color: "#84cc16", percent: 37, label: "37%" },
-    { color: "#fbbf24", percent: 8 },
-    { color: "#f97316", percent: 7, label: "7%" },
-    { color: "#ef4444", percent: 88 },
-  ]
-
   return (
     <div className="card-vibrant card-core relative flex flex-col items-center justify-center overflow-visible min-h-[560px]">
       {/* Background effects */}
@@ -446,13 +561,16 @@ export function EnvironmentalCore({
             subValue={Number.isFinite(currentPm25) ? Number(currentPm25?.toFixed(2)) : undefined}
             segments={pm25Segments}
           />
-          <CircularGauge
-            label="Water"
-            value={Number.isFinite(maxWaterLevel) ? Number(maxWaterLevel.toFixed(1)) : 0}
-            unit="ft"
-            subValue={Number.isFinite(currentWaterLevel) ? Number(currentWaterLevel?.toFixed(1)) : undefined}
-            segments={waterSegments}
-          />
+          <div className="flex flex-col items-center gap-1">
+            <WaterSemiGauge
+              value={Number.isFinite(currentWaterLevel) ? Number(currentWaterLevel.toFixed(2)) : 0}
+              maxValue={Number.isFinite(maxWaterLevel) ? Number(maxWaterLevel.toFixed(2)) : 0}
+              status={waterStatus}
+            />
+            <span className="text-[10px] text-slate-400">
+              highest recorded: {Number.isFinite(maxWaterLevel) ? maxWaterLevel.toFixed(1) : "0.0"} ft
+            </span>
+          </div>
         </div>
       </div>
 

@@ -223,6 +223,27 @@ export function PublicDashboard() {
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-full flex flex-col">
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
+                                {/* Water Quality Section */}
+                                <div className="flex flex-col gap-2 h-full">
+                                    <h3 className="text-lg font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 shrink-0">
+                                        <Droplets className="h-4 w-4" />
+                                        Groundwater Analysis
+                                    </h3>
+                                    <div className="flex-1 min-h-0 overflow-hidden">
+                                        <WaterQualityCard
+                                            data={{
+                                                level: selectedLoc.data?.level || 0,
+                                                ph: selectedLoc.data?.ph || 0,
+                                                turbidity: selectedLoc.data?.turbidity || 0,
+                                                chartData: selectedLoc.data?.chartData || { labels: [], level: [], ph: [], turbidity: [] }
+                                            }}
+                                            activeMetric={activeWaterMetric}
+                                            onMetricSelect={setActiveWaterMetric}
+                                            isOffline={!selectedLoc.online}
+                                        />
+                                    </div>
+                                </div>
+
                                 {/* Air Quality Section */}
                                 <div className="flex flex-col gap-2 h-full">
                                     <h3 className="text-lg font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 shrink-0">
@@ -242,27 +263,6 @@ export function PublicDashboard() {
                                             }}
                                             activeMetric={activeMetric}
                                             onMetricSelect={setActiveMetric}
-                                            isOffline={!selectedLoc.online}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Water Quality Section */}
-                                <div className="flex flex-col gap-2 h-full">
-                                    <h3 className="text-lg font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 shrink-0">
-                                        <Droplets className="h-4 w-4" />
-                                        Groundwater Analysis
-                                    </h3>
-                                    <div className="flex-1 min-h-0 overflow-hidden">
-                                        <WaterQualityCard
-                                            data={{
-                                                level: selectedLoc.data?.level || 0,
-                                                ph: selectedLoc.data?.ph || 0,
-                                                turbidity: selectedLoc.data?.turbidity || 0,
-                                                chartData: selectedLoc.data?.chartData || { labels: [], level: [], ph: [], turbidity: [] }
-                                            }}
-                                            activeMetric={activeWaterMetric}
-                                            onMetricSelect={setActiveWaterMetric}
                                             isOffline={!selectedLoc.online}
                                         />
                                     </div>

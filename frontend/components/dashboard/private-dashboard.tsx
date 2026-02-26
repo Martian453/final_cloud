@@ -32,7 +32,7 @@ export function PrivateDashboard() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [maxWaterLevel, setMaxWaterLevel] = useState(0)
     const hasAutoSelected = useRef(false); // Track smart auto-selection
-
+    const [waterStatus, setWaterStatus] = useState<string | null>(null)
     // PRODUCTIZATION STATE
     const [activeMetric, setActiveMetric] = useState("pm25");
     const [activeWaterMetric, setActiveWaterMetric] = useState<string | null>(null);
@@ -315,6 +315,21 @@ export function PrivateDashboard() {
                     console.warn("⚠️ Received ZERO Water Data - Not updating heartbeat");
                 }
 
+                // Derive pump/water status band for gauges
+                let derivedStatus: string | null = null;
+                const rawStatus = (wsData as any)?.data?.status as string | undefined;
+                if (rawStatus && typeof rawStatus === "string") {
+                    derivedStatus = rawStatus.toUpperCase();
+                } else {
+                    const level = wsData.data.level ?? 0;
+                    if (level < 2) derivedStatus = "OFF";
+                    else if (level < 4) derivedStatus = "LOW";
+                    else if (level < 7) derivedStatus = "MID";
+                    else if (level < 12) derivedStatus = "HIGH";
+                    else derivedStatus = "CRITICAL";
+                }
+                setWaterStatus(derivedStatus);
+
                 return {
                     level: wsData.data.level,
                     ph: wsData.data.ph,
@@ -494,7 +509,38 @@ export function PrivateDashboard() {
                             <>
                                 {/* DASHBOARD VIEW */}
                                 <div className="grid h-full grid-cols-1 gap-6 lg:grid-cols-[1fr_1.5fr_1fr] lg:gap-8">
-                                    {/* Col 1 */}
+                                    {/* Col 1 - Water Quality */}
+                                    {capabilities.has_water && (
+                                        <div className="flex flex-col gap-6 h-full transition-all duration-500">
+                                            <div className="flex-[1.5] min-h-[300px]">
+                                                <WaterQualityCard
+                                                    data={safeWaterData}
+                                                    activeMetric={selectedWaterMetric}
+                                                    onMetricSelect={handleWaterTileClick}
+                                                    onExpand={() => setModalConfig({ isOpen: true, type: 'water' })}
+                                                    isOffline={isWaterOffline}
+                                                />
+                                            </div>
+                                            <div className="flex-1 min-h-[250px]">
+                                                <PollutantDonutChart airData={safeAirData} />
+                                            </div>
+                                        </div>
+                                    )}
+                                    {/* Col 2 */}
+                                    <div className="relative h-[600px] w-full"> {/* Fixed Height Container for 3D */}
+                                        <EnvironmentalCore
+                                            aqi={airData?.pm25 ?? 0}
+                                            lastUpdate={lastMessageTime ? new Date(lastMessageTime).toLocaleTimeString() : "--:--"}
+                                            maxPm25={maxPm25Recorded}
+                                            currentPm25={airData?.pm25 ?? 0}
+                                            maxWaterLevel={maxWaterLevelRecorded}
+                                            currentWaterLevel={waterData?.level ?? 0}
+                                            waterStatus={waterStatus ?? undefined}
+                                            isOffline={locationStatus === "OFFLINE"}
+                                        />
+                                    </div>
+
+                                    {/* Col 3 - Air Quality */}
                                     {capabilities.has_aqi && (
                                         <div className={`flex flex-col h-full gap-6 transition-opacity duration-500 ${!airData ? 'opacity-50 blur-[1px]' : 'opacity-100'}`}>
                                             <div className="flex-1">
@@ -508,40 +554,12 @@ export function PrivateDashboard() {
                                             </div>
                                         </div>
                                     )}
-                                    {/* Col 2 */}
-                                    <div className="relative h-[600px] w-full"> {/* Fixed Height Container for 3D */}
-                                        <EnvironmentalCore
-                                            aqi={airData?.pm25 ?? 0}
-                                            lastUpdate={lastMessageTime ? new Date(lastMessageTime).toLocaleTimeString() : "--:--"}
-                                            maxPm25={maxPm25Recorded}
-                                            currentPm25={airData?.pm25 ?? 0}
-                                            maxWaterLevel={maxWaterLevelRecorded}
-                                            currentWaterLevel={waterData?.level ?? 0}
-                                            isOffline={locationStatus === "OFFLINE"}
-                                        />
-                                    </div>
-
-                                    {/* Col 3 */}
-                                    {capabilities.has_water && (
-                                        <div className={`flex flex-col gap-6 h-full transition-all duration-500`}>
-                                            <div className="flex-[1.5] min-h-[300px]">
-                                                <WaterQualityCard
-                                                    data={safeWaterData}
-                                                    activeMetric={selectedWaterMetric}
-                                                    onMetricSelect={handleWaterTileClick}
-                                                    onExpand={() => setModalConfig({ isOpen: true, type: 'water' })}
-                                                    isOffline={isWaterOffline}
-                                                />
-                                            </div>
-                                            <div className="flex-1 min-h-[250px]"><PollutantDonutChart airData={safeAirData} /></div>
-                                        </div>
-                                    )}
                                 </div>
 
                                 <div className="mx-auto mt-6 grid w-full max-w-6xl grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr]">
                                     <div className="h-[350px]">
                                         <div className="h-[350px]">
-                                            <PredictiveChart data={safeAirData.chartData} />
+                                            <PredictiveChart data={safeWaterData.chartData} />
                                         </div>
                                     </div>
                                     <div className="h-[350px]"><LeafletMapCard locations={Object.values(locationsStatus)} /></div>
