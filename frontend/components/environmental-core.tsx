@@ -93,23 +93,26 @@ function SpeedometerGauge({
   value,
   maxValue,
   status,
+  irms = 0,
+  pumpStatus = 'N/A',
 }: {
   value: number
   maxValue: number
   status?: string
+  irms?: number
+  pumpStatus?: string
 }) {
-  const safeMax = Math.max(maxValue || 0, 12);
+  const safeMax = Math.max(maxValue || 0, 5);
   const clampedValue = Math.max(0, Math.min(value, safeMax));
   const ratio = safeMax === 0 ? 0 : clampedValue / safeMax;
 
   // 4 color-coded zones: Left→Right = CRITICAL → LOW → MID → HIGH
   const zones = [
-    { label: "CRITICAL", from: 0, to: 0.25, color: "#dc2626" },   // Vibrant Red
-    { label: "LOW", from: 0.25, to: 0.5, color: "#f97316" }, // Warm Orange
-    { label: "MID", from: 0.5, to: 0.75, color: "#3b82f6" }, // Bright Blue
-    { label: "HIGH", from: 0.75, to: 1, color: "#22c55e" },   // Vivid Green
+    { label: "CRITICAL", from: 0, to: 0.25, color: "#d91536e8" },   // Vibrant Red
+    { label: "LOW", from: 0.25, to: 0.5, color: "#f3f627f8" }, // Warm Orange
+    { label: "MID", from: 0.5, to: 0.75, color: "#377deeff" }, // Bright Blue
+    { label: "HIGH", from: 0.75, to: 1, color: "#22c55eff" },   // Vivid Green
   ];
-
   const activeZone = zones.find(z => ratio >= z.from && ratio < z.to) || zones[zones.length - 1];
   const activeStatus = (status || activeZone.label).toUpperCase();
 
@@ -136,7 +139,7 @@ function SpeedometerGauge({
   const nx = cx + needleLen * Math.cos(needleRad);
   const ny = cy - needleLen * Math.sin(needleRad);
 
-  return (
+  return (<>
     <div className="relative h-60 w-full max-w-sm flex items-center justify-center">
       <svg viewBox="0 0 360 210" className="h-full w-full">
         {/* Glow filters for each zone */}
@@ -206,18 +209,18 @@ function SpeedometerGauge({
           style={{ transform: `translate(0, 0)` }}
         />
 
-        {/* Needle — pointed triangle */}
+        {/* Needle — brighter, more visible */}
         <line
           x1={cx} y1={cy}
           x2={nx} y2={ny}
-          stroke="#1e293b"
+          stroke="#e2e8f0"
           strokeWidth="7"
           strokeLinecap="round"
         />
         <line
           x1={cx} y1={cy}
           x2={nx} y2={ny}
-          stroke="#0f172a"
+          stroke="#f8fafc"
           strokeWidth="3"
           strokeLinecap="round"
         />
@@ -228,20 +231,28 @@ function SpeedometerGauge({
 
         {/* Zone labels — Left to Right: CRITICAL → LOW → MID → HIGH */}
         <text x="40" y="175" textAnchor="start" className="text-[11px] font-bold" fill="#dc2626">CRITICAL</text>
-        <text x="130" y="70" textAnchor="middle" className="text-[11px] font-bold" fill="#f97316">LOW</text>
+        <text x="130" y="70" textAnchor="middle" className="text-[11px] font-bold" fill="#e8eb28f8">LOW</text>
         <text x="220" y="70" textAnchor="middle" className="text-[11px] font-bold" fill="#3b82f6">MID</text>
         <text x="310" y="175" textAnchor="end" className="text-[11px] font-bold" fill="#22c55e">HIGH</text>
-
-        {/* Value display */}
-        <text x={cx} y="110" textAnchor="middle" className="text-[19px] font-bold" fill="#f1f5f9">
-          {clampedValue.toFixed(1)} ft
-        </text>
-        <text x={cx} y="125" textAnchor="middle" className="text-[12px] font-medium" fill="#94a3b8">
-          Water Level
-        </text>
       </svg>
     </div>
-  );
+
+    {/* Info Tiles below speedometer */}
+    <div className="flex items-center justify-center gap-6 mt-4 w-full max-w-sm">
+      <div className="flex-1 rounded-xl border border-cyan-500/20 bg-slate-900/60 backdrop-blur-sm px-3 py-2 text-center">
+        <div className="text-[12px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">Water Level</div>
+        <div className="text-sm font-bold text-white">{clampedValue.toFixed(1)} ft</div>
+      </div>
+      <div className="flex-1 rounded-xl border border-amber-500/20 bg-slate-900/60 backdrop-blur-sm px-3 py-2 text-center">
+        <div className="text-[12px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">IRMS</div>
+        <div className="text-sm font-bold text-white">{irms.toFixed(1)}</div>
+      </div>
+      <div className="flex-1 rounded-xl border border-emerald-500/20 bg-slate-900/60 backdrop-blur-sm px-3 py-2 text-center">
+        <div className="text-[12px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">Pump State</div>
+        <div className="text-sm font-bold text-white">{pumpStatus}</div>
+      </div>
+    </div>
+  </>);
 }
 
 export function EnvironmentalCore({
@@ -252,8 +263,21 @@ export function EnvironmentalCore({
   maxWaterLevel = 0,
   currentWaterLevel = 0,
   waterStatus,
+  waterIrms = 0,
+  waterPumpStatus = 'N/A',
   isOffline = false,
-}: EnvironmentalCoreProps) {
+}: {
+  aqi: number
+  lastUpdate: string
+  maxPm25?: number
+  currentPm25?: number
+  maxWaterLevel?: number
+  currentWaterLevel?: number
+  waterStatus?: string
+  waterIrms?: number
+  waterPumpStatus?: string
+  isOffline?: boolean
+}) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [currentTime, setCurrentTime] = useState(lastUpdate)
 
@@ -635,6 +659,8 @@ export function EnvironmentalCore({
             value={Number.isFinite(currentWaterLevel) ? Number(currentWaterLevel.toFixed(2)) : 0}
             maxValue={Number.isFinite(maxWaterLevel) ? Number(maxWaterLevel.toFixed(2)) : 0}
             status={waterStatus}
+            irms={waterIrms}
+            pumpStatus={waterPumpStatus}
           />
         </div>
       </div>

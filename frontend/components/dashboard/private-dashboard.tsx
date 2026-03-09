@@ -84,8 +84,8 @@ export function PrivateDashboard() {
     } | null>(null);
 
     const [waterData, setWaterData] = useState<{
-        level: number; ph: number; turbidity: number;
-        chartData: { labels: string[], level: number[], ph: number[], turbidity: number[] }
+        level: number; ph: number; tds: number; irms: number; pump_status: string;
+        chartData: { labels: string[], level: number[], ph: number[], tds: number[] }
     } | null>(null);
 
     // --- ONLINE DETECTION (POLLING /api/locations/status) ---
@@ -302,12 +302,12 @@ export function PrivateDashboard() {
             });
         } else if (wsData && (wsData.type === 'water' || wsData.type === 'water_sensor')) {
             setWaterData(prev => {
-                const currentChart = prev?.chartData || { labels: [], level: [], ph: [], turbidity: [] };
+                const currentChart = prev?.chartData || { labels: [], level: [], ph: [], tds: [] };
                 const timeLabel = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
                 const newLabels = [...currentChart.labels, timeLabel].slice(-100);
 
                 // OFFLINE LOGIC: Check for "Dead Zero" data
-                const isZeroWater = wsData.data.level === 0 && wsData.data.ph === 0 && wsData.data.turbidity === 0;
+                const isZeroWater = wsData.data.level === 0 && wsData.data.ph === 0 && wsData.data.tds === 0;
 
                 if (!isZeroWater) {
                     setLastWaterTime(Date.now()); // Update last seen ONLY if valid data
@@ -333,12 +333,14 @@ export function PrivateDashboard() {
                 return {
                     level: wsData.data.level,
                     ph: wsData.data.ph,
-                    turbidity: wsData.data.turbidity,
+                    tds: wsData.data.tds,
+                    irms: wsData.data.irms ?? 0,
+                    pump_status: wsData.data.pump_status ?? 'N/A',
                     chartData: {
                         labels: newLabels,
                         level: [...currentChart.level, wsData.data.level].slice(-100),
                         ph: [...currentChart.ph, wsData.data.ph].slice(-100),
-                        turbidity: [...currentChart.turbidity, wsData.data.turbidity].slice(-100)
+                        tds: [...currentChart.tds, wsData.data.tds].slice(-100)
                     }
                 }
             });
@@ -372,7 +374,7 @@ export function PrivateDashboard() {
         pm25: 0, pm10: 0, co: 0, no2: 0, o3: 0, so2: 0,
         chartData: { labels: [], pm25: [], pm10: [], co: [], no2: [], o3: [], so2: [] }
     };
-    const safeWaterData = waterData || { level: 0, ph: 0, turbidity: 0, chartData: { labels: [], level: [], ph: [], turbidity: [] } };
+    const safeWaterData = waterData || { level: 0, ph: 0, tds: 0, irms: 0, pump_status: 'N/A', chartData: { labels: [], level: [], ph: [], tds: [] } };
     const maxPm25Recorded = airData ? Math.max(airData.pm25, ...(airData.chartData?.pm25 || [])) : 0;
     const maxWaterLevelRecorded = waterData ? Math.max(waterData.level, ...(waterData.chartData?.level || [])) : 0;
 
@@ -424,7 +426,7 @@ export function PrivateDashboard() {
                 time: l,
                 level: safeWaterData.chartData.level[i],
                 ph: safeWaterData.chartData.ph[i],
-                turbidity: safeWaterData.chartData.turbidity[i],
+                tds: safeWaterData.chartData.tds[i],
             }));
         }
         return [];
@@ -531,6 +533,8 @@ export function PrivateDashboard() {
                                             maxWaterLevel={maxWaterLevelRecorded}
                                             currentWaterLevel={waterData?.level ?? 0}
                                             waterStatus={waterStatus ?? undefined}
+                                            waterIrms={waterData?.irms ?? 0}
+                                            waterPumpStatus={waterData?.pump_status ?? 'N/A'}
                                             isOffline={locationStatus === "OFFLINE"}
                                         />
                                     </div>

@@ -38,7 +38,7 @@ const pollutantConfig: Record<string, { color: string; label: string }> = {
 const waterMetricConfig: Record<string, { color: string; label: string }> = {
     level: { color: "#06b6d4", label: "Water Level" }, // Cyan 500
     ph: { color: "#10b981", label: "pH Level" },       // Emerald 500
-    turbidity: { color: "#f59e0b", label: "Turbidity" },// Amber 500
+    tds: { color: "#f59e0b", label: "TDS" },// Amber 500
 }
 
 export function ChartModal({
@@ -58,7 +58,7 @@ export function ChartModal({
         : Object.keys(pollutantConfig)
 
     // Filter water data based on selected metric
-    const waterMetrics = ["level", "ph", "turbidity"];
+    const waterMetrics = ["level", "ph", "tds"];
     const visibleWaterMetrics = selectedWaterMetric ? [selectedWaterMetric] : waterMetrics;
 
     return (
@@ -102,10 +102,10 @@ export function ChartModal({
                                     key={key}
                                     onClick={() => onPollutantSelect(selectedPollutant === key ? null : key)}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-medium border ${selectedPollutant === key
-                                            ? "bg-slate-800 border-emerald-500/50 text-white shadow-[0_0_15px_rgba(16,185,129,0.2)]"
-                                            : selectedPollutant && selectedPollutant !== key
-                                                ? "opacity-40 bg-transparent border-transparent text-slate-500"
-                                                : "bg-slate-900/50 border-white/5 text-slate-300 hover:bg-slate-800 hover:border-white/10"
+                                        ? "bg-slate-800 border-emerald-500/50 text-white shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                                        : selectedPollutant && selectedPollutant !== key
+                                            ? "opacity-40 bg-transparent border-transparent text-slate-500"
+                                            : "bg-slate-900/50 border-white/5 text-slate-300 hover:bg-slate-800 hover:border-white/10"
                                         }`}
                                 >
                                     <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: config.color }} />
@@ -184,7 +184,7 @@ export function ChartModal({
                                         Historical Data
                                     </span>
                                 </h2>
-                                <p className="text-slate-400 mt-1">Detailed trends for Level, pH, and Turbidity.</p>
+                                <p className="text-slate-400 mt-1">Detailed trends for Level, pH, and TDS.</p>
                             </div>
                         </div>
 
@@ -196,10 +196,10 @@ export function ChartModal({
                                     key={key}
                                     onClick={() => onWaterMetricSelect(selectedWaterMetric === key ? null : key)}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-medium border ${selectedWaterMetric === key
-                                            ? "bg-slate-800 border-cyan-500/50 text-white shadow-[0_0_15px_rgba(6,182,212,0.2)]"
-                                            : selectedWaterMetric && selectedWaterMetric !== key
-                                                ? "opacity-40 bg-transparent border-transparent text-slate-500"
-                                                : "bg-slate-900/50 border-white/5 text-slate-300 hover:bg-slate-800 hover:border-white/10"
+                                        ? "bg-slate-800 border-cyan-500/50 text-white shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+                                        : selectedWaterMetric && selectedWaterMetric !== key
+                                            ? "opacity-40 bg-transparent border-transparent text-slate-500"
+                                            : "bg-slate-900/50 border-white/5 text-slate-300 hover:bg-slate-800 hover:border-white/10"
                                         }`}
                                 >
                                     <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: config.color }} />

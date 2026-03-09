@@ -17,13 +17,7 @@ export function RecentReadingsTable({ waterLevels, aqiValues, labels }: RecentRe
     }
   }, [waterLevels, aqiValues])
 
-  const last5Labels = labels.slice(-5).map((l) => {
-    try {
-      return new Date(l).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    } catch {
-      return l
-    }
-  })
+  const last5Labels = labels.slice(-5)
   const last5Water = waterLevels.slice(-5)
   const last5Aqi = aqiValues.slice(-5)
 

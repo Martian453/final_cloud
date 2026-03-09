@@ -458,7 +458,7 @@ def get_public_locations(session: Session = Depends(get_session)):
         # Dictionary to hold latest values for this location
         loc_values = {
             "pm25": 0, "pm10": 0, "co": 0, "no2": 0, "o3": 0, "so2": 0,
-            "level": 0, "ph": 0, "turbidity": 0
+            "level": 0, "ph": 0, "tds": 0
         }
         
         for dev in devices:
@@ -486,7 +486,7 @@ def get_public_locations(session: Session = Depends(get_session)):
         chart_history = {
             "labels": [],
             "pm25": [], "pm10": [], "co": [], "no2": [], "o3": [], "so2": [],
-            "level": [], "ph": [], "turbidity": []
+            "level": [], "ph": [], "tds": []
         }
         
         # Fetch last 50 mixed measurements for this location's devices
@@ -517,7 +517,7 @@ def get_public_locations(session: Session = Depends(get_session)):
             chart_history["labels"] = [time_bucket_iso[t] for t in sorted_times]
             
             # Explicit keys to ensure all arrays are populated equally
-            metrics = ["pm25", "pm10", "co", "no2", "o3", "so2", "level", "ph", "turbidity"]
+            metrics = ["pm25", "pm10", "co", "no2", "o3", "so2", "level", "ph", "tds"]
             
             for t in sorted_times:
                 data_point = time_buckets[t]

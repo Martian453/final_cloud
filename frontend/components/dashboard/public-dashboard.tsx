@@ -19,12 +19,12 @@ function getAqiStatus(pm25: number) {
     return { label: "Hazardous", color: "text-rose-500" };
 }
 
-function getWaterStatus(ph: number, turbidity: number) {
-    if (ph === 0 && turbidity === 0) return { label: "--", color: "text-slate-500" };
+function getWaterStatus(ph: number, tds: number) {
+    if (ph === 0 && tds === 0) return { label: "--", color: "text-slate-500" };
     const phOk = ph >= 6.5 && ph <= 8.5;
-    const turbOk = turbidity < 5;
-    if (phOk && turbOk) return { label: "Safe", color: "text-emerald-400" };
-    if (phOk || turbOk) return { label: "Warning", color: "text-yellow-400" };
+    const tdsOk = tds < 500;
+    if (phOk && tdsOk) return { label: "Safe", color: "text-emerald-400" };
+    if (phOk || tdsOk) return { label: "Warning", color: "text-yellow-400" };
     return { label: "Critical", color: "text-red-400" };
 }
 
@@ -234,8 +234,8 @@ export function PublicDashboard() {
                                             data={{
                                                 level: selectedLoc.data?.level || 0,
                                                 ph: selectedLoc.data?.ph || 0,
-                                                turbidity: selectedLoc.data?.turbidity || 0,
-                                                chartData: selectedLoc.data?.chartData || { labels: [], level: [], ph: [], turbidity: [] }
+                                                tds: selectedLoc.data?.tds || 0,
+                                                chartData: selectedLoc.data?.chartData || { labels: [], level: [], ph: [], tds: [] }
                                             }}
                                             activeMetric={activeWaterMetric}
                                             onMetricSelect={setActiveWaterMetric}
@@ -332,7 +332,7 @@ export function PublicDashboard() {
                                                         )
                                                     })()}
                                                     {(() => {
-                                                        const s = loc.online ? getWaterStatus(loc.data?.ph || 0, loc.data?.turbidity || 0) : { label: "--", color: "text-slate-500" }; return (
+                                                        const s = loc.online ? getWaterStatus(loc.data?.ph || 0, loc.data?.tds || 0) : { label: "--", color: "text-slate-500" }; return (
                                                             <div className="bg-black/40 rounded-xl p-3 border border-white/5 text-center group-hover:border-white/10 transition-colors">
                                                                 <Droplets className="h-5 w-5 mx-auto text-blue-400 mb-2" />
                                                                 <div className="text-xs text-slate-500">Water Status</div>

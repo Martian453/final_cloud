@@ -20,12 +20,12 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointEleme
 interface WaterQualityData {
   level: number
   ph: number
-  turbidity: number
+  tds: number
   chartData: {
     labels: string[]
     level: number[]
     ph: number[]
-    turbidity: number[]
+    tds: number[]
   }
 }
 
@@ -45,7 +45,7 @@ export function WaterQualityCard({ data, activeMetric, onMetricSelect, onExpand,
   const [animatedValues, setAnimatedValues] = useState({
     level: 0,
     ph: 0,
-    turbidity: 0,
+    tds: 0,
   })
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export function WaterQualityCard({ data, activeMetric, onMetricSelect, onExpand,
       setAnimatedValues({
         level: startValues.level + (data.level - startValues.level) * eased,
         ph: startValues.ph + (data.ph - startValues.ph) * eased,
-        turbidity: startValues.turbidity + (data.turbidity - startValues.turbidity) * eased,
+        tds: startValues.tds + (data.tds - startValues.tds) * eased,
       })
 
       if (progress < 1) requestAnimationFrame(animate)
@@ -73,14 +73,14 @@ export function WaterQualityCard({ data, activeMetric, onMetricSelect, onExpand,
 
     animate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.level, data.ph, data.turbidity])
+  }, [data.level, data.ph, data.tds])
 
   // ==========================================
   // STATIC BAR CHART PREPARATION (OLD STYLE)
   // ==========================================
-  const allLabels = ["Ground Water Level", "pH Level", "Turbidity"]
-  const allLineData = [animatedValues.level, animatedValues.ph, animatedValues.turbidity]
-  const allBarData = [animatedValues.level, animatedValues.ph, animatedValues.turbidity]
+  const allLabels = ["Ground Water Level", "pH Level", "TDS"]
+  const allLineData = [animatedValues.level, animatedValues.ph, animatedValues.tds]
+  const allBarData = [animatedValues.level, animatedValues.ph, animatedValues.tds]
 
   const barChartData = {
     labels: allLabels,
@@ -96,7 +96,7 @@ export function WaterQualityCard({ data, activeMetric, onMetricSelect, onExpand,
         pointBackgroundColor: [
           (activeMetric === null || activeMetric === "level" || hoveredMetric === "level") ? "rgba(143, 211, 255, 1)" : "rgba(143, 211, 255, 0.1)",
           (activeMetric === null || activeMetric === "ph" || hoveredMetric === "ph") ? "rgba(124, 255, 154, 1)" : "rgba(124, 255, 154, 0.1)",
-          (activeMetric === null || activeMetric === "turbidity" || hoveredMetric === "turbidity") ? "rgba(255, 211, 106, 1)" : "rgba(255, 211, 106, 0.1)",
+          (activeMetric === null || activeMetric === "tds" || hoveredMetric === "tds") ? "rgba(255, 211, 106, 1)" : "rgba(255, 211, 106, 0.1)",
         ],
         pointBorderColor: "#0f172a",
         pointBorderWidth: 2,
@@ -109,7 +109,7 @@ export function WaterQualityCard({ data, activeMetric, onMetricSelect, onExpand,
         backgroundColor: [
           (activeMetric === null || activeMetric === "level" || hoveredMetric === "level") ? "rgba(6, 182, 212, 1)" : "rgba(6, 182, 212, 0.1)",
           (activeMetric === null || activeMetric === "ph" || hoveredMetric === "ph") ? "rgba(34, 197, 94, 1)" : "rgba(34, 197, 94, 0.1)",
-          (activeMetric === null || activeMetric === "turbidity" || hoveredMetric === "turbidity") ? "rgba(251, 191, 36, 1)" : "rgba(251, 191, 36, 0.1)",
+          (activeMetric === null || activeMetric === "tds" || hoveredMetric === "tds") ? "rgba(251, 191, 36, 1)" : "rgba(251, 191, 36, 0.1)",
         ],
         borderRadius: 8,
         barThickness: 50,
@@ -162,7 +162,7 @@ export function WaterQualityCard({ data, activeMetric, onMetricSelect, onExpand,
   const metricConfig: Record<string, { label: string; color: string; bgColor: string; unit: string }> = {
     level: { label: "Water Level", color: "rgb(34, 211, 238)", bgColor: "rgba(34, 211, 238, 0.1)", unit: "ft" },
     ph: { label: "pH Level", color: "rgb(74, 222, 128)", bgColor: "rgba(74, 222, 128, 0.1)", unit: "" },
-    turbidity: { label: "Turbidity", color: "rgb(251, 191, 36)", bgColor: "rgba(251, 191, 36, 0.1)", unit: "NTU" },
+    tds: { label: "TDS", color: "rgb(251, 191, 36)", bgColor: "rgba(251, 191, 36, 0.1)", unit: "ppm" },
   }
   const cfg = metricConfig[chartMetric] || metricConfig.level
 
@@ -250,10 +250,10 @@ export function WaterQualityCard({ data, activeMetric, onMetricSelect, onExpand,
       bgGlow: "shadow-[0_0_25px_rgba(124,255,154,0.3)]"
     },
     {
-      key: "turbidity",
-      label: "Turbidity",
-      value: animatedValues.turbidity.toFixed(1),
-      unit: "ppb",
+      key: "tds",
+      label: "TDS",
+      value: animatedValues.tds.toFixed(1),
+      unit: "ppm",
       color: "text-amber-400",
       hoverColor: "text-amber-300",
       glow: "drop-shadow-[0_0_10px_rgba(255,211,106,0.5)]",

@@ -97,13 +97,13 @@ export function LeafletMapCard({ locations = [] }: LeafletMapCardProps) {
                 style={{ height: "100%", width: "100%" }}
                 zoomControl={false}
             >
+                {/* Mapbox Dark Theme (Native, no CSS hacks) */}
                 <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
-                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
-                    subdomains="abcd"
-                    maxZoom={20}
-                    crossOrigin="anonymous"
-                    className="dark-tiles"
+                    attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url="https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFydGlhbjQ1MyIsImEiOiJjbW00bTB0YzIwMTdsMnJzOWJqYWp1bHgyIn0.kpPtzpnh7IJ7ylVRI_-ZSQ"
+                    maxZoom={18}
+                    tileSize={512}
+                    zoomOffset={-1}
                 />
 
                 {validLocations.map((loc) => (
@@ -129,10 +129,6 @@ export function LeafletMapCard({ locations = [] }: LeafletMapCardProps) {
 
             {/* Subtle border ring only */}
             <div className="pointer-events-none absolute inset-0 z-[500] ring-1 ring-inset ring-white/10 rounded-2xl" />
-            <style>{`
-                .dark-tiles { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(1.1); }
-                .leaflet-marker-icon, .leaflet-marker-shadow { filter: none !important; }
-            `}</style>
         </div>
     )
 }
