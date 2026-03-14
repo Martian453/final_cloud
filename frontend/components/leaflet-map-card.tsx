@@ -2,7 +2,6 @@
 
 import { useEffect } from "react"
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
-import "leaflet/dist/leaflet.css"
 import L from "leaflet"
 
 // Fix for default marker icon in Next.js
@@ -81,8 +80,8 @@ export function LeafletMapCard({ locations = [] }: LeafletMapCardProps) {
     );
 
     return (
-        <div className="card-vibrant relative flex h-full flex-col gap-4 overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-slate-950/60 via-slate-900/50 to-slate-950/70 p-0">
-            <div className="absolute left-6 top-6 z-[1000] rounded-xl border border-emerald-500/20 bg-slate-900/80 p-4 backdrop-blur-md">
+        <div className="relative flex h-full flex-col gap-4 overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-slate-950/60 via-slate-900/50 to-slate-950/70 p-0">
+            <div className="absolute left-4 top-4 z-[1000] rounded-xl border border-emerald-500/20 bg-slate-900/90 px-4 py-3 backdrop-blur-md pointer-events-none">
                 <h2 className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400 bg-clip-text text-sm font-semibold uppercase tracking-[0.2em] text-transparent">
                     Device Map
                 </h2>
@@ -96,14 +95,13 @@ export function LeafletMapCard({ locations = [] }: LeafletMapCardProps) {
                 zoom={12}
                 style={{ height: "100%", width: "100%" }}
                 zoomControl={false}
+                className="leaflet-dark-theme"
             >
-                {/* Mapbox Dark Theme (Native, no CSS hacks) */}
+                {/* Standard OpenStreetMap Mapnik tiles — universal fallback */}
                 <TileLayer
-                    attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFydGlhbjQ1MyIsImEiOiJjbW00bTB0YzIwMTdsMnJzOWJqYWp1bHgyIn0.kpPtzpnh7IJ7ylVRI_-ZSQ"
-                    maxZoom={18}
-                    tileSize={512}
-                    zoomOffset={-1}
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    maxZoom={19}
                 />
 
                 {validLocations.map((loc) => (
@@ -127,8 +125,8 @@ export function LeafletMapCard({ locations = [] }: LeafletMapCardProps) {
                 <MapController locations={validLocations} />
             </MapContainer>
 
-            {/* Subtle border ring only */}
-            <div className="pointer-events-none absolute inset-0 z-[500] ring-1 ring-inset ring-white/10 rounded-2xl" />
+            {/* Subtle border ring — z-index below leaflet popups but above tiles */}
+            <div className="pointer-events-none absolute inset-0 z-[400] ring-1 ring-inset ring-white/10 rounded-2xl" />
         </div>
     )
 }

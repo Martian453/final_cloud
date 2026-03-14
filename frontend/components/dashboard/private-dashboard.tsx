@@ -302,45 +302,77 @@ export function PrivateDashboard() {
             });
         } else if (wsData && (wsData.type === 'water' || wsData.type === 'water_sensor')) {
             setWaterData(prev => {
+                const incoming = wsData.data;
+                const hasTankData = 'level' in incoming;
+                // We check for either 'irms' or the explicit 'status' field sent by the pump monitor
+                const hasPumpData = 'irms' in incoming || 'status' in incoming;
+
                 const currentChart = prev?.chartData || { labels: [], level: [], ph: [], tds: [] };
-                const timeLabel = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-                const newLabels = [...currentChart.labels, timeLabel].slice(-100);
+                
+                let newLabels = currentChart.labels;
+                let newLevelArr = currentChart.level;
+                let newPhArr = currentChart.ph;
+                let newTdsArr = currentChart.tds;
 
-                // OFFLINE LOGIC: Check for "Dead Zero" data
-                const isZeroWater = wsData.data.level === 0 && wsData.data.ph === 0 && wsData.data.tds === 0;
+                // Only append to the chart history if this was a water tank reading
+                if (hasTankData) {
+                    const timeLabel = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+                    newLabels = [...currentChart.labels, timeLabel].slice(-100);
+                    newLevelArr = [...currentChart.level, incoming.level].slice(-100);
+                    newPhArr = [...currentChart.ph, incoming.ph ?? prev?.ph ?? 0].slice(-100);
+                    newTdsArr = [...currentChart.tds, incoming.tds ?? prev?.tds ?? 0].slice(-100);
+                    
+                    // Offline heartbeat update ONLY if it's a valid tank reading
+                    const isZeroWater = incoming.level === 0 && incoming.ph === 0 && incoming.tds === 0;
+                    if (!isZeroWater) {
+                        setLastWaterTime(Date.now());
+                    }
+                }
 
-                if (!isZeroWater) {
-                    setLastWaterTime(Date.now()); // Update last seen ONLY if valid data
-                } else {
-                    console.warn("⚠️ Received ZERO Water Data - Not updating heartbeat");
+                // If it's a pump reading, update the heartbeat regardless
+                if (hasPumpData) {
+                    setLastWaterTime(Date.now());
                 }
 
                 // Derive pump/water status band for gauges
-                let derivedStatus: string | null = null;
-                const rawStatus = (wsData as any)?.data?.status as string | undefined;
-                if (rawStatus && typeof rawStatus === "string") {
-                    derivedStatus = rawStatus.toUpperCase();
-                } else {
-                    const level = wsData.data.level ?? 0;
+                let derivedStatus: string | null = waterStatus; // keep old status by default
+                
+                if (hasPumpData) {
+                    // Pump monitor sends exact status string
+                    if (incoming.status && typeof incoming.status === "string") {
+                        derivedStatus = incoming.status.toUpperCase();
+                    } else {
+                        // Fallback logic if needed
+                        const irms = incoming.irms ?? 0;
+                        if (irms < 2) derivedStatus = "OFF";
+                        else if (irms < 4) derivedStatus = "LOW";
+                        else if (irms < 7) derivedStatus = "MID";
+                        else if (irms < 12) derivedStatus = "HIGH";
+                        else derivedStatus = "CRITICAL";
+                    }
+                } else if (!prev?.pump_status || prev.pump_status === 'N/A') {
+                    // Fallback to deriving from level ONLY if no pump data exists yet
+                    const level = incoming.level ?? prev?.level ?? 0;
                     if (level < 2) derivedStatus = "OFF";
                     else if (level < 4) derivedStatus = "LOW";
                     else if (level < 7) derivedStatus = "MID";
                     else if (level < 12) derivedStatus = "HIGH";
                     else derivedStatus = "CRITICAL";
                 }
+                
                 setWaterStatus(derivedStatus);
 
                 return {
-                    level: wsData.data.level,
-                    ph: wsData.data.ph,
-                    tds: wsData.data.tds,
-                    irms: wsData.data.irms ?? 0,
-                    pump_status: wsData.data.pump_status ?? 'N/A',
+                    level: hasTankData ? incoming.level : (prev?.level ?? 0),
+                    ph: hasTankData ? (incoming.ph ?? prev?.ph ?? 0) : (prev?.ph ?? 0),
+                    tds: hasTankData ? (incoming.tds ?? prev?.tds ?? 0) : (prev?.tds ?? 0),
+                    irms: hasPumpData ? (incoming.irms ?? prev?.irms ?? 0) : (prev?.irms ?? 0),
+                    pump_status: hasPumpData ? (derivedStatus ?? 'N/A') : (prev?.pump_status ?? 'N/A'),
                     chartData: {
                         labels: newLabels,
-                        level: [...currentChart.level, wsData.data.level].slice(-100),
-                        ph: [...currentChart.ph, wsData.data.ph].slice(-100),
-                        tds: [...currentChart.tds, wsData.data.tds].slice(-100)
+                        level: newLevelArr,
+                        ph: newPhArr,
+                        tds: newTdsArr
                     }
                 }
             });

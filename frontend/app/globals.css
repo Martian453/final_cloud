@@ -224,6 +224,39 @@
   }
 }
 
+/* =============================================
+   Leaflet + Tailwind v4 Fix
+   Tailwind Preflight sets img { max-width:100%; height:auto }
+   which collapses Leaflet tile <img> elements → blank map.
+   ============================================= */
+.leaflet-container img {
+  max-width: none !important;
+}
+
+.leaflet-tile-pane img {
+  max-width: none !important;
+  max-height: none !important;
+}
+
+/* Ensure Leaflet controls don't get hidden behind card overlays */
+.leaflet-container {
+  z-index: 1;
+  background: #1a1a2e !important;
+}
+
+/* Dark theme for OSM tiles — gentler filter that preserves road detail */
+.leaflet-dark-theme .leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(180deg) brightness(0.7) contrast(1.5);
+}
+
+/* Keep markers/popups/attribution normal (undo the invert) */
+.leaflet-dark-theme .leaflet-marker-pane,
+.leaflet-dark-theme .leaflet-popup-pane,
+.leaflet-dark-theme .leaflet-shadow-pane,
+.leaflet-dark-theme .leaflet-control-container {
+  filter: none;
+}
+
 /* 2026 Vibrant Dashboard Styles */
 @layer components {
 
