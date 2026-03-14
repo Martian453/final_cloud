@@ -104,7 +104,6 @@ function SpeedometerGauge({
 }) {
   const safeMax = Math.max(maxValue || 0, 5);
   const clampedValue = Math.max(0, Math.min(value, safeMax));
-  const ratio = safeMax === 0 ? 0 : clampedValue / safeMax;
 
   // 4 color-coded zones: Left→Right = CRITICAL → LOW → MID → HIGH
   const zones = [
@@ -113,8 +112,22 @@ function SpeedometerGauge({
     { label: "MID", from: 0.5, to: 0.75, color: "#377deeff" }, // Bright Blue
     { label: "HIGH", from: 0.75, to: 1, color: "#22c55eff" },   // Vivid Green
   ];
+
+  // Map status string → ratio (center of the zone)
+  const statusToRatio: Record<string, number> = {
+    "OFF":      0.125,  // Center of CRITICAL zone
+    "CRITICAL": 0.125,  // Center of CRITICAL zone
+    "LOW":      0.375,  // Center of LOW zone
+    "MID":      0.625,  // Center of MID zone
+    "HIGH":     0.875,  // Center of HIGH zone
+  };
+
+  // Priority: use the status string from pump monitor, fallback to ratio-based
+  const activeStatusStr = (status || "OFF").toUpperCase();
+  const ratio = statusToRatio[activeStatusStr] ?? (safeMax === 0 ? 0 : clampedValue / safeMax);
+
   const activeZone = zones.find(z => ratio >= z.from && ratio < z.to) || zones[zones.length - 1];
-  const activeStatus = (status || activeZone.label).toUpperCase();
+  const activeStatus = activeStatusStr;
 
   // Needle angle: semi-circle from 180° (left) to 0° (right)
   const needleAngle = 180 - (ratio * 180);
